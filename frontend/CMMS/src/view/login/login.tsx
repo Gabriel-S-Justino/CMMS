@@ -13,13 +13,13 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function LoginScreen() {
-  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [senha, setSenha] = useState('');
   const [mostrarSenha, setMostrarSenha] = useState(false);
   const [carregando, setCarregando] = useState(false);
 
   const handleLogin = async () => {
-    if (!email.trim() || !senha.trim()) {
+    if (!username.trim() || !senha.trim()) {
       return;
     }
 
@@ -33,7 +33,7 @@ export default function LoginScreen() {
       // });
 
       console.log('Login:', {
-        email,
+        username,
         senha,
       });
     } finally {
@@ -68,19 +68,19 @@ export default function LoginScreen() {
               Entre com suas credenciais para acessar o sistema.
             </Text>
 
-            {/* E-mail */}
+            {/* Usuário */}
             <View style={styles.fieldContainer}>
               <Text style={styles.label}>
-                E-mail
+                Usuário
               </Text>
 
               <TextInput
                 style={styles.input}
-                value={email}
-                onChangeText={setEmail}
-                placeholder="seu@email.com"
+                value={username}
+                onChangeText={setUsername}
+                placeholder="Nome de Usuário"
                 placeholderTextColor="#94A3B8"
-                keyboardType="email-address"
+                keyboardType="default"
                 autoCapitalize="none"
                 autoCorrect={false}
                 editable={!carregando}
@@ -132,11 +132,11 @@ export default function LoginScreen() {
             <Pressable
               style={[
                 styles.loginButton,
-                (!email.trim() || !senha.trim() || carregando) &&
+                (!username.trim() || !senha.trim() || carregando) &&
                   styles.loginButtonDisabled,
               ]}
               onPress={handleLogin}
-              disabled={!email.trim() || !senha.trim() || carregando}
+              disabled={!username.trim() || !senha.trim() || carregando}
             >
               {carregando ? (
                 <ActivityIndicator color="#FFFFFF" />
