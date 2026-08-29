@@ -1,7 +1,7 @@
-import Admin from '../view/admin/admin';
-import Login from '../view/login/login';
+// src/app/index.tsx
+import { Redirect } from "expo-router";
+import { ROUTES } from "@/constants/routes";
 
 export default function Index() {
-  return <Login />;
-  //return <Admin />;
+  return <Redirect href={ROUTES.LOGIN} />;
 }

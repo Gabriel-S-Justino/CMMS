@@ -1,36 +1,31 @@
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+// src/view/login/termo_e_privacidade/privacidade.tsx
+import { LegalDocumentScreen } from "@/components/legal-document-screen";
 
 export default function PrivacidadeScreen() {
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.title}>Política de Privacidade</Text>
-
-      <View style={styles.content}>
-        <Text style={styles.text}>
-          Conteúdo da Política de Privacidade do CMMS.
-        </Text>
-      </View>
-    </ScrollView>
+    <LegalDocumentScreen
+      title="Política de Privacidade"
+      lastUpdated="[DATA]"
+      sections={[
+        {
+          title: "1. Dados Coletados",
+          paragraphs: [
+            "Coletamos informações de cadastro de equipamentos, prestadores de serviço, manutenções e custos inseridos pelos usuários autorizados do sistema.",
+          ],
+        },
+        {
+          title: "2. Uso das Informações",
+          paragraphs: [
+            "Os dados são utilizados exclusivamente para viabilizar o controle de manutenções, geração de relatórios e indicadores dentro da organização.",
+          ],
+        },
+        {
+          title: "3. Compartilhamento de Dados",
+          paragraphs: [
+            "As informações não são compartilhadas com terceiros, exceto quando exigido por obrigação legal ou regulatória.",
+          ],
+        },
+      ]}
+    />
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    padding: 24,
-  },
-
-  title: {
-    fontSize: 28,
-    fontWeight: '700',
-    marginBottom: 24,
-  },
-
-  content: {
-    gap: 16,
-  },
-
-  text: {
-    fontSize: 16,
-    lineHeight: 24,
-  },
-});

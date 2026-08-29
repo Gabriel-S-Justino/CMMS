@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { router } from "expo-router";
+import { ROUTES } from "@/constants/routes";
 import { styles } from "./login.style";
 import {
   ActivityIndicator,
@@ -40,6 +41,12 @@ export default function LoginScreen() {
     } finally {
       setCarregando(false);
     }
+  };
+
+  // TODO: telas ainda não implementadas em src/view/.
+  // Substituir por router.push(ROUTES.X) assim que os arquivos existirem.
+  const handleNotImplemented = (label: string) => {
+    console.warn(`[login] Tela "${label}" ainda não implementada.`);
   };
 
   return (
@@ -118,7 +125,11 @@ export default function LoginScreen() {
             </View>
 
             {/* Recuperar senha */}
-            <Pressable style={styles.forgotButton} disabled={carregando}>
+            <Pressable
+              style={styles.forgotButton}
+              disabled={carregando}
+              onPress={() => handleNotImplemented("Recuperar senha")}
+            >
               <Text style={styles.forgotText}>Esqueci minha senha</Text>
             </Pressable>
 
@@ -142,23 +153,14 @@ export default function LoginScreen() {
 
           {/* Rodapé */}
           <View style={styles.footer}>
-
             <View style={styles.legalLinks}>
-              <Pressable
-                onPress={() =>
-                  router.push("../view/login/termo_e_privacidade/termos")
-                }
-              >
+              <Pressable onPress={() => router.push(ROUTES.TERMS)}>
                 <Text style={styles.legalLink}>Termos de Uso</Text>
               </Pressable>
 
               <Text style={styles.legalSeparator}>·</Text>
 
-              <Pressable
-                onPress={() =>
-                  router.push("../view/login/termo_e_privacidade/privacidade")
-                }
-              >
+              <Pressable onPress={() => router.push(ROUTES.PRIVACY_POLICY)}>
                 <Text style={styles.legalLink}>Política de Privacidade</Text>
               </Pressable>
             </View>

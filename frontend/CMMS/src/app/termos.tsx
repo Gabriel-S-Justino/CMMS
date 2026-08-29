@@ -1,0 +1,1 @@
+export { default } from "@/view/login/termo_e_privacidade/termos";
