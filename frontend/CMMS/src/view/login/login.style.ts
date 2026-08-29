@@ -25,18 +25,24 @@ export const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 16,
-    backgroundColor: '#EFF6FF',
+    backgroundColor: '#eff6ff00',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 14,
   },
 
   logoIcon: {
-    transform: [{ scale: 1.5 }],
-  },
+  width: 115,
+  height: 115,
+  borderRadius: 12,
+  backgroundColor: '#eff6ff02',
+  justifyContent: 'center',
+  alignItems: 'center',
+  marginBottom: -30,
+},
 
   logoText: {
-    fontSize: 32,
+    fontSize: 35,
     fontWeight: '800',
     color: '#0F172A',
     letterSpacing: 1,

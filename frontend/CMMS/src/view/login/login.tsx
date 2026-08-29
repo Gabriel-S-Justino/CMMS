@@ -2,10 +2,10 @@ import { useState } from 'react';
 import { styles } from './login.style';
 import {
   ActivityIndicator,
+  Image,
   KeyboardAvoidingView,
   Platform,
   Pressable,
-  StyleSheet,
   Text,
   TextInput,
   View,
@@ -51,10 +51,15 @@ export default function LoginScreen() {
 
           {/* Logo / Identidade */}
           <View style={styles.header}>
+            <Image
+              source={require('../../../assets/images/CMMS_Logo.png')}
+              style={styles.logoIcon}
+              resizeMode="contain"
+            />
             <Text style={styles.logoText}>CMMS</Text>
 
             <Text style={styles.subtitle}>
-              Gestão de manutenção
+              Gestão de manutenção industrial e automotiva
             </Text>
           </View>
 
