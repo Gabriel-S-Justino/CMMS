@@ -1,5 +1,6 @@
-import { useState } from 'react';
-import { styles } from './login.style';
+import { useState } from "react";
+import { router } from "expo-router";
+import { styles } from "./login.style";
 import {
   ActivityIndicator,
   Image,
@@ -9,12 +10,12 @@ import {
   Text,
   TextInput,
   View,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function LoginScreen() {
-  const [username, setUsername] = useState('');
-  const [senha, setSenha] = useState('');
+  const [username, setUsername] = useState("");
+  const [senha, setSenha] = useState("");
   const [mostrarSenha, setMostrarSenha] = useState(false);
   const [carregando, setCarregando] = useState(false);
 
@@ -32,7 +33,7 @@ export default function LoginScreen() {
       //   senha,
       // });
 
-      console.log('Login:', {
+      console.log("Login:", {
         username,
         senha,
       });
@@ -45,14 +46,13 @@ export default function LoginScreen() {
     <SafeAreaView style={styles.safeArea}>
       <KeyboardAvoidingView
         style={styles.keyboardView}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
         <View style={styles.container}>
-
           {/* Logo / Identidade */}
           <View style={styles.header}>
             <Image
-              source={require('../../../assets/images/CMMS_Logo.png')}
+              source={require("../../../assets/images/CMMS_Logo.png")}
               style={styles.logoIcon}
               resizeMode="contain"
             />
@@ -65,9 +65,7 @@ export default function LoginScreen() {
 
           {/* Formulário */}
           <View style={styles.formContainer}>
-            <Text style={styles.welcomeTitle}>
-              Bem-vindo
-            </Text>
+            <Text style={styles.welcomeTitle}>Bem-vindo</Text>
 
             <Text style={styles.welcomeText}>
               Entre com suas credenciais para acessar o sistema.
@@ -75,9 +73,7 @@ export default function LoginScreen() {
 
             {/* Usuário */}
             <View style={styles.fieldContainer}>
-              <Text style={styles.label}>
-                Usuário
-              </Text>
+              <Text style={styles.label}>Usuário</Text>
 
               <TextInput
                 style={styles.input}
@@ -94,9 +90,7 @@ export default function LoginScreen() {
 
             {/* Senha */}
             <View style={styles.fieldContainer}>
-              <Text style={styles.label}>
-                Senha
-              </Text>
+              <Text style={styles.label}>Senha</Text>
 
               <View style={styles.passwordContainer}>
                 <TextInput
@@ -117,20 +111,15 @@ export default function LoginScreen() {
                   disabled={carregando}
                 >
                   <Text style={styles.showPasswordText}>
-                    {mostrarSenha ? 'Ocultar' : 'Mostrar'}
+                    {mostrarSenha ? "Ocultar" : "Mostrar"}
                   </Text>
                 </Pressable>
               </View>
             </View>
 
             {/* Recuperar senha */}
-            <Pressable
-              style={styles.forgotButton}
-              disabled={carregando}
-            >
-              <Text style={styles.forgotText}>
-                Esqueci minha senha
-              </Text>
+            <Pressable style={styles.forgotButton} disabled={carregando}>
+              <Text style={styles.forgotText}>Esqueci minha senha</Text>
             </Pressable>
 
             {/* Entrar */}
@@ -146,24 +135,38 @@ export default function LoginScreen() {
               {carregando ? (
                 <ActivityIndicator color="#FFFFFF" />
               ) : (
-                <Text style={styles.loginButtonText}>
-                  Entrar
-                </Text>
+                <Text style={styles.loginButtonText}>Entrar</Text>
               )}
             </Pressable>
           </View>
 
           {/* Rodapé */}
           <View style={styles.footer}>
+
+            <View style={styles.legalLinks}>
+              <Pressable
+                onPress={() =>
+                  router.push("../view/login/termo_e_privacidade/termos")
+                }
+              >
+                <Text style={styles.legalLink}>Termos de Uso</Text>
+              </Pressable>
+
+              <Text style={styles.legalSeparator}>·</Text>
+
+              <Pressable
+                onPress={() =>
+                  router.push("../view/login/termo_e_privacidade/privacidade")
+                }
+              >
+                <Text style={styles.legalLink}>Política de Privacidade</Text>
+              </Pressable>
+            </View>
             <Text style={styles.footerText}>
               Sistema de Gestão de Manutenção
             </Text>
-
-            <Text style={styles.footerVersion}>
-              Todos os direitos reservadors © 2026 - Versão 1.0.0
-            </Text>
+            <Text style={styles.footerVersion}>© 2026 CMMS · Versão 1.0.0</Text>
           </View>
-
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>

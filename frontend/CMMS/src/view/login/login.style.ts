@@ -156,7 +156,7 @@ export const styles = StyleSheet.create({
 
   footer: {
     alignItems: 'center',
-    marginTop: 40,
+    marginTop: 50,
   },
 
   footerText: {
@@ -170,4 +170,23 @@ export const styles = StyleSheet.create({
     color: '#94A3B8',
     marginTop: 4,
   },
+
+  legalLinks: {
+  flexDirection: 'row',
+  alignItems: 'center',
+  marginTop: 0,
+},
+
+legalLink: {
+  fontSize: 11,
+  marginTop: 0,
+  color: '#2563EB',
+},
+
+legalSeparator: {
+  fontSize: 11,
+  marginTop: 0,
+  color: '#000000',
+  marginHorizontal: 8,
+},
 });
