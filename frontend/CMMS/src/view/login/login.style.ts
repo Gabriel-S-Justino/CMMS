@@ -144,6 +144,11 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
   },
 
+  loginButtonPressed: {
+  opacity: 0.7,
+  transform: [{ scale: 0.96 }],
+},
+
   loginButtonDisabled: {
     opacity: 0.55,
   },
@@ -188,5 +193,18 @@ legalSeparator: {
   marginTop: 0,
   color: '#000000',
   marginHorizontal: 8,
+},
+
+secondaryActions: {
+  flexDirection: 'row',
+  alignSelf: 'flex-end',
+  gap: 20,
+},
+
+secondaryActionsSeparator: {
+  fontSize: 10,
+  marginTop: -1,
+  color: '#2563EB',
+  marginHorizontal: -10,
 },
 });

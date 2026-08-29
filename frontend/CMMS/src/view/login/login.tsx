@@ -28,7 +28,6 @@ export default function LoginScreen() {
     setCarregando(true);
 
     try {
-      // Futuramente:
       // const response = await api.post('/auth/login', {
       //   email,
       //   senha,
@@ -43,8 +42,6 @@ export default function LoginScreen() {
     }
   };
 
-  // TODO: telas ainda não implementadas em src/view/.
-  // Substituir por router.push(ROUTES.X) assim que os arquivos existirem.
   const handleNotImplemented = (label: string) => {
     console.warn(`[login] Tela "${label}" ainda não implementada.`);
   };
@@ -73,11 +70,9 @@ export default function LoginScreen() {
           {/* Formulário */}
           <View style={styles.formContainer}>
             <Text style={styles.welcomeTitle}>Bem-vindo</Text>
-
             <Text style={styles.welcomeText}>
               Entre com suas credenciais para acessar o sistema.
             </Text>
-
             {/* Usuário */}
             <View style={styles.fieldContainer}>
               <Text style={styles.label}>Usuário</Text>
@@ -94,7 +89,6 @@ export default function LoginScreen() {
                 editable={!carregando}
               />
             </View>
-
             {/* Senha */}
             <View style={styles.fieldContainer}>
               <Text style={styles.label}>Senha</Text>
@@ -124,21 +118,36 @@ export default function LoginScreen() {
               </View>
             </View>
 
-            {/* Recuperar senha */}
-            <Pressable
-              style={styles.forgotButton}
-              disabled={carregando}
-              onPress={() => handleNotImplemented("Recuperar senha")}
-            >
-              <Text style={styles.forgotText}>Esqueci minha senha</Text>
-            </Pressable>
+            <View style={styles.secondaryActions}>
+              {/* Recuperar senha */}
+              <Pressable
+                style={styles.forgotButton}
+                disabled={carregando}
+                onPress={() => router.push(ROUTES.RECUPERAR_SENHA)}
+              >
+                <Text style={styles.forgotText}>Esqueci minha senha</Text>
+              </Pressable>
+
+              <Text style={styles.secondaryActionsSeparator}>●</Text>
+
+              {/* Cadastrar Usuário */}
+              {/*Somente gestores e administradores terão acesso ao cadastro*/}
+              <Pressable
+                style={styles.forgotButton}
+                disabled={carregando}
+                onPress={() => router.push(ROUTES.REGISTER_USER)}
+              >
+                <Text style={styles.forgotText}>Cadastre-se</Text>
+              </Pressable>
+            </View>
 
             {/* Entrar */}
             <Pressable
-              style={[
+              style={({ pressed }) => [
                 styles.loginButton,
                 (!username.trim() || !senha.trim() || carregando) &&
                   styles.loginButtonDisabled,
+                pressed && styles.loginButtonPressed,
               ]}
               onPress={handleLogin}
               disabled={!username.trim() || !senha.trim() || carregando}

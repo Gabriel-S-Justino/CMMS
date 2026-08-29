@@ -1,0 +1,1 @@
+export { default } from "@/view/recuperar_senha/recuperar_senha";
