@@ -3,7 +3,7 @@ import { router } from "expo-router";
 import { Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { styles } from "./legal-document-screen.style";
+import { styles } from "../view/login/termo_e_privacidade/legal-document-screen.style";
 
 export type LegalSection = {
   title: string;
