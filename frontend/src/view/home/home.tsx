@@ -1,3 +1,4 @@
+//home.tsx
 import { useMemo, useState } from 'react';
 import { ActivityIndicator, ScrollView, Text, TextInput, View, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -8,6 +9,8 @@ import { FilterChip } from '@/components/filter-chip';
 import { MetricCard } from '@/components/metric-card';
 import { useAssets } from '@/hooks/use-assets';
 import { Asset, AssetStatus } from '@/types/assets';
+import { ROUTES } from '@/constants/routes';
+import { router } from 'expo-router';
 
 type StatusFilter = AssetStatus | 'all';
 
@@ -27,9 +30,6 @@ export default function HomeScreen() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
 
-  // Antes: const [dados vinham direto de MOCK_ASSETS/MOCK_METRICS]
-  // Agora: vêm do hook, que hoje devolve o mock por baixo dos panos
-  // (via assets-service.ts), mas já está pronto para dado assíncrono real.
   const { assets, metrics, isLoading, error } = useAssets();
 
   const filteredAssets = useMemo(() => {
@@ -64,7 +64,7 @@ export default function HomeScreen() {
           <Text style={styles.emptyText}>{error}</Text>
         ) : (
           <>
-            {/* metrics, não mais MOCK_METRICS */}
+            {/* metrics*/}
             <View style={styles.metricsGrid}>
               {metrics.map((metric) => (
                 <MetricCard key={metric.id} metric={metric} />
@@ -74,7 +74,9 @@ export default function HomeScreen() {
             <View style={styles.section}>
               <View style={styles.sectionHeader}>
                 <Text style={styles.sectionTitle}>Ativos</Text>
-                <Pressable style={styles.addButton} onPress={handleNotImplemented}>
+                <Pressable style={styles.addButton}
+                  onPress={() => router.push(ROUTES.REGISTER_ASSET as any)}
+                >
                   <Text style={styles.addButtonText}>+ Novo ativo</Text>
                 </Pressable>
               </View>
