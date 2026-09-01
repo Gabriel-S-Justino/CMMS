@@ -21,7 +21,7 @@
     },
     "web": {
       "output": "static",
-      "favicon": "./assets/images/CMMS_Logo.png"
+      "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
       "expo-router",
@@ -33,7 +33,8 @@
           "imageWidth": 76
         }
       ],
-      "expo-font"
+      "expo-font",
+      "expo-secure-store"
     ],
     "experiments": {
       "typedRoutes": true,

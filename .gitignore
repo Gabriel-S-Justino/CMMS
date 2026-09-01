@@ -1,0 +1,27 @@
+# Variáveis de ambiente — nunca versionar
+.env
+.env.*
+!.env.example
+
+# Python / backend
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Uploads (volume do Docker, fora do webroot)
+backend/uploads/*
+!backend/uploads/.gitkeep
+
+# Sistema
+.DS_Store
+
+# Pacotes/binários que não pertencem ao histórico
+*.zip
+
+# Ajustes locais de compose (ex.: publicar a porta do postgres pro DBeaver)
+docker-compose.override.yml

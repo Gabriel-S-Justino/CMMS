@@ -207,4 +207,11 @@ secondaryActionsSeparator: {
   color: '#2563EB',
   marginHorizontal: -10,
 },
+
+errorText: {
+  fontSize: 13,
+  color: '#DC2626',
+  marginTop: 4,
+  textAlign: 'center',
+},
 });

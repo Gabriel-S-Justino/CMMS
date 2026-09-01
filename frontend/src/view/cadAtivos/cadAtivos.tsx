@@ -13,7 +13,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 
 import { styles } from './cadAtivos.style';
-import { ROUTES } from '@/constants/routes';
+import { Categoria } from '@/types/assets';
 
 type FormErrors = {
   nome?: string;
@@ -30,15 +30,7 @@ type FormErrors = {
   responsavel?: string;
 };
 
-type Categoria =
-  | 'vehicle'
-  | 'industrialMachine'
-  | 'equipment'
-  | 'electrical'
-  | 'infrastructure'
-  | 'other';
-
-const CATEGORIAS = [
+const CATEGORIAS: { value: Categoria; label: string }[] = [
   { value: 'vehicle', label: 'Veículo' },
   { value: 'industrialMachine', label: 'Máquina industrial' },
   { value: 'equipment', label: 'Equipamento' },
@@ -360,7 +352,7 @@ export default function CadAtivosScreen() {
                 categoria === item.value && styles.selectButtonActive,
               ]}
               onPress={() => {
-                setCategoria(item.value as Categoria);
+                setCategoria(item.value);
                 setTipo('');
               }}
               disabled={carregando}

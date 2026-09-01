@@ -1,0 +1,53 @@
+# Sobe a API do CMMS e o PostgreSQL.
+# O postgres NÃO publica porta aqui: só a rede interna do compose o alcança.
+# Para acessar com DBeaver/psql na máquina de desenvolvimento, use o
+# docker-compose.override.yml (fora do Git, aplicado automaticamente).
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: cmms-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-cmms}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?defina POSTGRES_PASSWORD no .env}
+      POSTGRES_DB: ${POSTGRES_DB:-cmms}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-cmms} -d ${POSTGRES_DB:-cmms}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build: ./backend
+    container_name: cmms-api
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-cmms}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-cmms}
+      JWT_SECRET: ${JWT_SECRET:?defina JWT_SECRET no .env}
+      DEBUG: ${DEBUG:-false}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:8081}
+      ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@cmms.local}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:?defina ADMIN_PASSWORD no .env}
+      # Proxies reversos confiáveis para o uvicorn honrar X-Forwarded-For/Proto.
+      # Vazio (padrão) = nenhum: o IP do cliente é sempre o do peer TCP.
+      FORWARDED_ALLOW_IPS: ${FORWARDED_ALLOW_IPS:-}
+    ports:
+      - "${API_PORT:-8080}:8000"
+    volumes:
+      - uploads_data:/app/uploads
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8000/api/v1/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+volumes:
+  postgres_data:
+  uploads_data:

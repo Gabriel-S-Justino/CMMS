@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { router } from "expo-router";
 import { ROUTES } from "@/constants/routes";
+import { useAuth } from "@/context/auth-context";
 import { styles } from "./login.style";
 import {
   ActivityIndicator,
@@ -15,10 +16,13 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function LoginScreen() {
+  const { login } = useAuth();
+
   const [username, setUsername] = useState("");
   const [senha, setSenha] = useState("");
   const [mostrarSenha, setMostrarSenha] = useState(false);
   const [carregando, setCarregando] = useState(false);
+  const [erro, setErro] = useState<string | null>(null);
 
   const handleLogin = async () => {
     if (!username.trim() || !senha.trim()) {
@@ -26,24 +30,20 @@ export default function LoginScreen() {
     }
 
     setCarregando(true);
+    setErro(null);
 
     try {
-      // const response = await api.post('/auth/login', {
-      //   email,
-      //   senha,
-      // });
-
-      console.log("Login:", {
-        username,
-        senha,
-      });
+      await login(username.trim(), senha);
+      router.replace(ROUTES.HOME);
+    } catch (e) {
+      setErro(
+        e instanceof Error
+          ? e.message
+          : "Não foi possível entrar. Tente novamente."
+      );
     } finally {
       setCarregando(false);
     }
-  };
-
-  const handleNotImplemented = (label: string) => {
-    console.warn(`[login] Tela "${label}" ainda não implementada.`);
   };
 
   return (
@@ -140,6 +140,8 @@ export default function LoginScreen() {
                 <Text style={styles.forgotText}>Cadastre-se</Text>
               </Pressable>
             </View>
+
+            {erro && <Text style={styles.errorText}>{erro}</Text>}
 
             {/* Entrar */}
             <Pressable

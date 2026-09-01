@@ -14,6 +14,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { styles } from "./recuperarSenha.style";
 import { ROUTES } from "@/constants/routes";
+import { api, isApiConfigured } from "@/services/api";
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -28,6 +29,7 @@ export default function RecuperacaoSenhaScreen() {
 
   const [carregando, setCarregando] = useState(false);
   const [errors, setErrors] = useState<FormErrors>({});
+  const [mensagem, setMensagem] = useState<string | null>(null);
 
   const validate = (): FormErrors => {
     const nextErrors: FormErrors = {};
@@ -48,6 +50,7 @@ export default function RecuperacaoSenhaScreen() {
   const handleRecuperarSenha = async () => {
     const nextErrors = validate();
     setErrors(nextErrors);
+    setMensagem(null);
 
     if (Object.keys(nextErrors).length > 0) {
       return;
@@ -56,13 +59,22 @@ export default function RecuperacaoSenhaScreen() {
     setCarregando(true);
 
     try {
-      // TODO:
-      // Implementar posteriormente a chamada para o backend.
-      // O backend deverá validar usuário + e-mail e enviar
-      // o link de recuperação para o e-mail informado.
-
+      if (isApiConfigured()) {
+        // O endpoint responde 200 mesmo se o e-mail não existir,
+        // pra não revelar quais e-mails estão cadastrados.
+        await api.post(
+          "/auth/recuperar-senha",
+          { email: email.trim() },
+          { auth: false }
+        );
+      }
+    } catch {
+      // Idem: qualquer falha mostra a mesma mensagem neutra.
     } finally {
       setCarregando(false);
+      setMensagem(
+        "Se os dados estiverem corretos, enviamos um link de recuperação para o e-mail informado."
+      );
     }
   };
 
@@ -154,6 +166,8 @@ export default function RecuperacaoSenhaScreen() {
                 </Text>
               )}
             </View>
+
+            {mensagem && <Text style={styles.successText}>{mensagem}</Text>}
 
             {/* Recuperar senha */}
             <Pressable

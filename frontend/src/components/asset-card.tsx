@@ -4,8 +4,8 @@
 
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { StatusBadge } from '@/components/ststus-badge';
-import { TYPE_LABELS } from '@/constants/asset-status';
+import { StatusBadge } from '@/components/status-badge';
+import { CATEGORY_LABELS } from '@/constants/asset-status';
 import { Asset } from '@/types/assets';
 
 type AssetCardProps = {
@@ -13,8 +13,11 @@ type AssetCardProps = {
   onPress: (asset: Asset) => void;
 };
 
-function formatDate(isoDate: string) {
-  return new Date(isoDate).toLocaleDateString('pt-BR');
+// A API devolve null quando o ativo ainda não tem nenhuma manutenção registrada.
+function formatLastMaintenance(isoDate: string | null) {
+  if (!isoDate) return 'Sem manutenção';
+
+  return `Última manutenção: ${new Date(isoDate).toLocaleDateString('pt-BR')}`;
 }
 
 export function AssetCard({ asset, onPress }: AssetCardProps) {
@@ -31,13 +34,13 @@ export function AssetCard({ asset, onPress }: AssetCardProps) {
       </View>
 
       <Text style={styles.meta}>
-        {TYPE_LABELS[asset.type]} · {asset.location}
+        {CATEGORY_LABELS[asset.category]} · {asset.type} · {asset.location}
       </Text>
 
       <StatusBadge status={asset.status} />
 
       <Text style={styles.lastMaintenance}>
-        Última manutenção: {formatDate(asset.lastMaintenanceDate)}
+        {formatLastMaintenance(asset.lastMaintenanceDate)}
       </Text>
     </Pressable>
   );
