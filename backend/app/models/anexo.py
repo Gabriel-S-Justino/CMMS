@@ -7,6 +7,7 @@ from sqlalchemy import (
     DateTime,
     Enum as SAEnum,
     ForeignKey,
+    Index,
     Integer,
     String,
     Text,
@@ -25,9 +26,11 @@ class Anexo(Base):
             "manutencao_id IS NOT NULL OR ativo_id IS NOT NULL",
             name="ck_anexos_tem_dono",
         ),
+        Index("ix_anexos_empresa_id", "empresa_id"),
     )
 
     id: Mapped[int] = mapped_column(primary_key=True)
+    empresa_id: Mapped[int] = mapped_column(ForeignKey("empresas.id"), nullable=False)
     manutencao_id: Mapped[int | None] = mapped_column(
         ForeignKey("manutencoes.id", ondelete="CASCADE")
     )

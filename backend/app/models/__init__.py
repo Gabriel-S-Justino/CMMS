@@ -2,6 +2,7 @@
 
 from app.models.anexo import Anexo
 from app.models.ativo import Ativo
+from app.models.empresa import Empresa, gerar_codigo_convite
 from app.models.enums import (
     CategoriaAtivo,
     StatusAtivo,
@@ -19,12 +20,13 @@ from app.models.plano_preventiva import PlanoPreventiva
 from app.models.prestador import Prestador
 from app.models.refresh_token import RefreshToken
 from app.models.token_recuperacao import TokenRecuperacaoSenha
-from app.models.usuario import Usuario
+from app.models.usuario import PERFIL_SUPERADMIN, Usuario
 
 __all__ = [
     "Anexo",
     "Ativo",
     "CategoriaAtivo",
+    "Empresa",
     "LogAuditoria",
     "Manutencao",
     "ManutencaoPeca",
@@ -39,6 +41,8 @@ __all__ = [
     "TipoAnexo",
     "TipoManutencao",
     "TokenRecuperacaoSenha",
+    "PERFIL_SUPERADMIN",
     "Usuario",
+    "gerar_codigo_convite",
     "perfil_permissoes",
 ]

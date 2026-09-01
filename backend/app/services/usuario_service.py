@@ -7,8 +7,14 @@ from app.models.perfil import Perfil
 from app.models.usuario import Usuario
 
 
-def listar(db: Session, *, pendentes: bool | None = None) -> list[Usuario]:
+def listar(
+    db: Session, empresa_id: int | None = None, *, pendentes: bool | None = None
+) -> list[Usuario]:
+    """`empresa_id=None` só é usado pelo superadmin, que enxerga todas as empresas."""
     query = select(Usuario).order_by(Usuario.criado_em.desc())
+
+    if empresa_id is not None:
+        query = query.where(Usuario.empresa_id == empresa_id)
 
     if pendentes is True:
         query = query.where(Usuario.ativo.is_(False))
@@ -35,7 +41,7 @@ def para_saida(usuario: Usuario) -> dict:
         "username": usuario.username,
         "email": usuario.email,
         "cargo": usuario.cargo,
-        "empresa": usuario.empresa,
+        "empresa": {"id": usuario.empresa_id, "nome": usuario.empresa.nome},
         "funcao": usuario.funcao,
         "perfil": usuario.perfil.nome if usuario.perfil else None,
         "permissoes": usuario.permissoes,

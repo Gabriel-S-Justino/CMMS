@@ -18,7 +18,7 @@ tocar em componente nenhum.
 | `AssetStatus` = operational / maintenance / stopped / alert | Enum `status_ativo` com esses exatos valores |
 | `Categoria` = vehicle / industrialMachine / equipment / electrical / infrastructure / other | Enum `categoria_ativo` com esses exatos valores |
 | `login.tsx` loga com **username** + senha | `usuarios.username UNIQUE`; login não é por email |
-| `cadUser.tsx` pede username, cargo, empresa, funcao, email, senha e diz "solicitar acesso" | Cadastro público cria usuário com `ativo = false`; um admin aprova e define o perfil. `empresa` fica como texto por enquanto (sistema single-tenant); `funcao` é só o que a pessoa se descreve, o perfil real quem define é o admin |
+| `cadUser.tsx` pede username, cargo, código da empresa, funcao, email, senha e diz "solicitar acesso" | Cadastro público cria usuário com `ativo = false`; um admin aprova e define o perfil. A empresa **não é digitada**: vem do `codigoConvite` (§8.6); `funcao` é só o que a pessoa se descreve, o perfil real quem define é o admin |
 | `recuperarSenha.tsx` | Tabela `tokens_recuperacao_senha` + envio de email |
 | `Asset.isMaintenanceOverdue` | Calculado: existe `planos_preventiva` ativo com `proxima_prevista < hoje` |
 | `Asset.lastMaintenanceDate` | Calculado: `MAX(manutencoes.data_servico)` do ativo |
@@ -293,7 +293,7 @@ Prefixo `/api/v1`. Todo endpoint fora de `/auth/*` exige `Authorization: Bearer 
 | POST | `/auth/login` | `{username, senha}` | `{accessToken, refreshToken, usuario: {id, username, perfil, permissoes[]}}` | público (rate limit 5/min) |
 | POST | `/auth/refresh` | `{refreshToken}` | novo par de tokens | público |
 | POST | `/auth/logout` | `{refreshToken}` | 204 | logado |
-| POST | `/auth/registrar` | `{username, cargo, empresa, funcao, email, senha}` | 201 `{mensagem: "Solicitação enviada, aguarde aprovação"}` | público (rate limit) |
+| POST | `/auth/registrar` | `{username, cargo, codigoConvite, funcao, email, senha}` | 201 `{mensagem: "Solicitação enviada, aguarde aprovação"}` | público (rate limit) |
 | POST | `/auth/recuperar-senha` | `{email}` | 200 sempre (não revela se email existe) | público (rate limit) |
 | POST | `/auth/redefinir-senha` | `{token, novaSenha}` | 200 | público |
 | GET | `/auth/me` | | usuário logado + permissões | logado |
@@ -392,3 +392,134 @@ Ao terminar, suba com docker compose, rode a migration e o seed, e me mostre o r
 GET /api/v1/health e de POST /api/v1/auth/login com o admin do .env.
 Responda sempre em português.
 ```
+
+---
+
+## 8. Multi-tenant
+
+O CMMS atende várias empresas no mesmo banco. Cada empresa é um **tenant**, e o
+isolamento é por coluna (`empresa_id`), não por schema nem por banco separado.
+
+### 8.1 Tabela `empresas`
+
+```
+empresas
+  id             serial PK
+  nome           varchar(150) NOT NULL
+  cnpj           varchar(18) UNIQUE NULL
+  codigo_convite varchar(12) UNIQUE NOT NULL   -- aleatório, regenerável
+  ativo          boolean DEFAULT true
+  criado_em      timestamptz DEFAULT now()
+```
+
+O `codigo_convite` usa um alfabeto sem caracteres ambíguos (sem `0/O`, `1/I/L`)
+porque é ditado por telefone e digitado à mão. Ele **nunca entra em
+`logs_auditoria`**: está na lista de campos sensíveis do `core/auditoria.py`.
+
+### 8.2 `empresa_id` nas demais tabelas
+
+`empresa_id` FK → `empresas(id)`, **NOT NULL**, com índice, em:
+`usuarios`, `ativos`, `prestadores`, `pecas`, `manutencoes`,
+`planos_preventiva` e `anexos`.
+
+Em `logs_auditoria` a coluna é **nullable**: um login falho de username
+inexistente não tem tenant conhecido.
+
+Os UNIQUE viraram compostos, porque duas empresas podem usar o mesmo código:
+
+| antes (global) | agora |
+|---|---|
+| `ativos.codigo` | `UNIQUE (empresa_id, codigo)` |
+| `ativos.patrimonio` | `UNIQUE (empresa_id, patrimonio)` |
+| `pecas.codigo` | `UNIQUE (empresa_id, codigo)` |
+| `prestadores.cnpj_cpf` | `UNIQUE (empresa_id, cnpj_cpf)` |
+
+`usuarios.username` e `usuarios.email` **continuam globais**: o login acontece
+antes de se saber o tenant, então precisam identificar a pessoa no sistema todo.
+
+`usuarios.empresa` (texto livre digitado no cadastro) deixou de existir — a
+empresa agora é a FK, e a API devolve `empresa: {id, nome}`.
+
+### 8.3 A regra que não se quebra
+
+**Toda query de dado operacional filtra por `empresa_id`.** O filtro vem da
+dependência `escopo_empresa` (`app/core/tenant.py`):
+
+```python
+@router.get("/ativos")
+def listar(
+    usuario: Usuario = Depends(requer("ativos.ver")),
+    empresa_id: int = Depends(escopo_empresa),
+): ...
+```
+
+Para carregar um registro por id, use `obter_do_escopo`, que já devolve 404
+quando o registro é de outra empresa:
+
+```python
+ativo = obter_do_escopo(db, Ativo, ativo_id, empresa_id,
+                        nao_encontrado="Ativo não encontrado.")
+```
+
+**Referências cruzadas** (criar manutenção apontando `ativoId`/`prestadorId`,
+vincular `pecaId`, anexar a uma manutenção) validam que o alvo é da mesma
+empresa pelo mesmo helper.
+
+> **404, nunca 403.** Um 403 confirmaria que aquele id existe em outro tenant.
+> Registro fora do escopo tem de ser indistinguível de registro inexistente.
+
+Para as telas administrativas existe `escopo_empresa_admin`, que devolve `None`
+para o superadmin (vê todas as empresas) e o `empresa_id` para os demais. Só use
+onde ver várias empresas é intencional: `usuarios`, `auditoria`, `empresas`.
+
+### 8.4 Perfil `superadmin`
+
+Administra a **plataforma**, não o CMMS. Permissões: `empresas.gerenciar` e
+`usuarios.gerenciar` — e mais nenhuma. Não tem `ativos.ver`, `manutencoes.ver`
+nem `custos.ver`, então não enxerga dado operacional de empresa alguma (um
+`GET /ativos` como superadmin responde 403).
+
+Ele mora na empresa **"Plataforma"**, criada pelo seed só para lhe dar um
+`empresa_id` — ela não tem dado operacional.
+
+Duas rotas aceitam o superadmin por `usuarios.gerenciar` e o admin da empresa
+por `usuarios.ver`/`usuarios.aprovar`, via `requer_qualquer(...)`:
+`GET /usuarios` e `PATCH /usuarios/{id}/aprovar`.
+
+### 8.5 Endpoints de empresa
+
+| Método | Rota | Quem pode |
+|---|---|---|
+| GET | `/empresas` | `empresas.gerenciar` (superadmin) |
+| POST | `/empresas` | `empresas.gerenciar` |
+| PATCH | `/empresas/{id}` | `empresas.gerenciar` |
+| POST | `/empresas/{id}/regenerar-convite` | superadmin, ou admin da **própria** empresa |
+| GET | `/empresas/minha` | qualquer logado — `codigoConvite` só sai para quem tem `usuarios.aprovar` |
+
+### 8.6 Cadastro por convite
+
+`POST /auth/registrar` recebe **`codigoConvite`** no lugar do antigo campo
+`empresa`:
+
+```json
+{"username": "...", "cargo": "...", "codigoConvite": "ABCD2345WXYZ",
+ "funcao": "...", "email": "...", "senha": "..."}
+```
+
+A empresa é resolvida pelo código (comparação sem espaços e sem caixa). Código
+inexistente, ou de empresa desativada, devolve **400 com mensagem genérica** —
+não dizemos qual dos dois casos ocorreu, nem confirmamos códigos por tentativa
+e erro. O usuário nasce `ativo = false` na empresa do convite.
+
+`PATCH /usuarios/{id}/aprovar` só funciona para **admin da mesma empresa** ou
+superadmin; alvo de outra empresa devolve 404.
+
+### 8.7 Seed
+
+`python -m seeds.perfis_permissoes` cria:
+
+- empresa **"Plataforma"** + `superadmin` (`SUPERADMIN_USERNAME` / `SUPERADMIN_PASSWORD`);
+- empresa **"Demo"** + o `admin` (`ADMIN_USERNAME` / `ADMIN_PASSWORD`);
+- e imprime o **código de convite da Demo** no final, para cadastrar os primeiros usuários.
+
+É idempotente e nunca sobrescreve a senha de quem já existe.

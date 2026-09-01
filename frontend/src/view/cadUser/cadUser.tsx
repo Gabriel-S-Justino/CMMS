@@ -22,7 +22,7 @@ const SENHA_MIN_LENGTH = 8;
 type FormErrors = {
   username?: string;
   cargo?: string;
-  empresa?: string;
+  codigoConvite?: string;
   funcao?: string;
   email?: string;
   senha?: string;
@@ -32,7 +32,7 @@ type FormErrors = {
 export default function CadUserScreen() {
   const [username, setUsername] = useState("");
   const [cargo, setCargo] = useState("");
-  const [empresa, setEmpresa] = useState("");
+  const [codigoConvite, setCodigoConvite] = useState("");
   const [funcao, setFuncao] = useState("");
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
@@ -50,7 +50,8 @@ export default function CadUserScreen() {
 
     if (!username.trim()) nextErrors.username = "Informe o nome de usuário.";
     if (!cargo.trim()) nextErrors.cargo = "Informe o cargo.";
-    if (!empresa.trim()) nextErrors.empresa = "Informe a empresa.";
+    if (!codigoConvite.trim())
+      nextErrors.codigoConvite = "Informe o código da empresa.";
     if (!funcao.trim()) nextErrors.funcao = "Informe a função.";
 
     if (!email.trim()) {
@@ -95,7 +96,9 @@ export default function CadUserScreen() {
           {
             username: username.trim(),
             cargo: cargo.trim(),
-            empresa: empresa.trim(),
+            // O backend resolve a empresa por este código; não existe mais
+            // campo de empresa digitado à mão.
+            codigoConvite: codigoConvite.trim().toUpperCase(),
             funcao: funcao.trim(),
             email: email.trim(),
             senha,
@@ -119,7 +122,7 @@ export default function CadUserScreen() {
   const isFormFilled =
     username.trim() &&
     cargo.trim() &&
-    empresa.trim() &&
+    codigoConvite.trim() &&
     funcao.trim() &&
     email.trim() &&
     senha &&
@@ -179,19 +182,25 @@ export default function CadUserScreen() {
               {errors.cargo && <Text style={styles.errorText}>{errors.cargo}</Text>}
             </View>
 
-            {/* Empresa */}
+            {/* Código da empresa */}
             <View style={styles.fieldContainer}>
-              <Text style={styles.label}>Empresa</Text>
+              <Text style={styles.label}>Código da empresa</Text>
               <TextInput
-                style={[styles.input, errors.empresa && styles.inputError]}
-                value={empresa}
-                onChangeText={setEmpresa}
-                placeholder="Nome da empresa"
+                style={[styles.input, errors.codigoConvite && styles.inputError]}
+                value={codigoConvite}
+                onChangeText={(texto) => setCodigoConvite(texto.toUpperCase())}
+                placeholder="Ex.: ABCD2345WXYZ"
                 placeholderTextColor="#94A3B8"
+                autoCapitalize="characters"
+                autoCorrect={false}
+                maxLength={12}
                 editable={!carregando}
               />
-              {errors.empresa && (
-                <Text style={styles.errorText}>{errors.empresa}</Text>
+              <Text style={styles.helperText}>
+                Peça ao administrador da sua empresa.
+              </Text>
+              {errors.codigoConvite && (
+                <Text style={styles.errorText}>{errors.codigoConvite}</Text>
               )}
             </View>
 

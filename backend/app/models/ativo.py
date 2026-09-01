@@ -14,6 +14,7 @@ from sqlalchemy import (
     SmallInteger,
     String,
     Text,
+    UniqueConstraint,
     func,
 )
 from sqlalchemy.dialects.postgresql import JSONB
@@ -32,6 +33,11 @@ from app.models.enums import (
 class Ativo(Base):
     __tablename__ = "ativos"
     __table_args__ = (
+        # Código e patrimônio são únicos DENTRO da empresa: duas empresas podem
+        # ter, cada uma, o seu ativo "TR-001".
+        UniqueConstraint("empresa_id", "codigo", name="uq_ativos_empresa_codigo"),
+        UniqueConstraint("empresa_id", "patrimonio", name="uq_ativos_empresa_patrimonio"),
+        Index("ix_ativos_empresa_id", "empresa_id"),
         Index("ix_ativos_status", "status"),
         Index("ix_ativos_categoria", "categoria"),
         Index("ix_ativos_localizacao", "localizacao"),
@@ -39,6 +45,7 @@ class Ativo(Base):
     )
 
     id: Mapped[int] = mapped_column(primary_key=True)
+    empresa_id: Mapped[int] = mapped_column(ForeignKey("empresas.id"), nullable=False)
 
     # --- Identificação (etapa 1 do cadAtivos) ---
     nome: Mapped[str] = mapped_column(String(150), nullable=False)
@@ -47,7 +54,7 @@ class Ativo(Base):
         nullable=False,
     )
     tipo: Mapped[str | None] = mapped_column(String(80))
-    codigo: Mapped[str | None] = mapped_column(String(50), unique=True)
+    codigo: Mapped[str | None] = mapped_column(String(50))
     patrimonio: Mapped[str | None] = mapped_column(String(50))
 
     # --- Características ---

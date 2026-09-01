@@ -14,6 +14,7 @@ from app.routers import (
     auditoria,
     auth,
     dashboard,
+    empresas,
     manutencoes,
     pecas,
     planos,
@@ -60,6 +61,7 @@ def health() -> HealthResponse:
 
 for modulo in (
     auth,
+    empresas,
     usuarios,
     ativos,
     dashboard,

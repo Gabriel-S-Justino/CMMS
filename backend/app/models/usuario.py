@@ -2,21 +2,27 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, Text, func
+from sqlalchemy import Boolean, DateTime, ForeignKey, Index, Integer, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
 
+# Perfil de plataforma: administra empresas e usuários, não opera o CMMS.
+PERFIL_SUPERADMIN = "superadmin"
+
 
 class Usuario(Base):
     __tablename__ = "usuarios"
+    __table_args__ = (Index("ix_usuarios_empresa_id", "empresa_id"),)
 
     id: Mapped[int] = mapped_column(primary_key=True)
+    # username e email seguem globais: o login é único no sistema inteiro, não
+    # por empresa, senão não daria para saber em qual tenant autenticar.
     username: Mapped[str] = mapped_column(String(50), unique=True, nullable=False)
     email: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
     senha_hash: Mapped[str] = mapped_column(Text, nullable=False)
+    empresa_id: Mapped[int] = mapped_column(ForeignKey("empresas.id"), nullable=False)
     cargo: Mapped[str | None] = mapped_column(String(100))
-    empresa: Mapped[str | None] = mapped_column(String(150))
     funcao: Mapped[str | None] = mapped_column(String(100))
     perfil_id: Mapped[int | None] = mapped_column(ForeignKey("perfis.id"))
     # false = cadastro aguardando aprovação de um admin
@@ -31,6 +37,7 @@ class Usuario(Base):
     atualizado_em: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), onupdate=func.now())
 
     perfil: Mapped["Perfil | None"] = relationship(back_populates="usuarios", lazy="selectin")
+    empresa: Mapped["Empresa"] = relationship(lazy="selectin")
 
     @property
     def permissoes(self) -> list[str]:
@@ -41,3 +48,8 @@ class Usuario(Base):
 
     def tem_permissao(self, codigo: str) -> bool:
         return codigo in self.permissoes
+
+    @property
+    def eh_superadmin(self) -> bool:
+        """Superadmin enxerga todas as empresas; qualquer outro fica no seu tenant."""
+        return self.perfil is not None and self.perfil.nome == PERFIL_SUPERADMIN

@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 from app.core import auditoria
 from app.core.database import get_db
 from app.core.permissions import requer
+from app.core.tenant import escopo_empresa, obter_do_escopo
 from app.models.ativo import Ativo
 from app.models.enums import StatusAtivo
 from app.models.manutencao import Manutencao
@@ -26,9 +27,11 @@ def listar(
     page: int = Query(default=1, ge=1),
     db: Session = Depends(get_db),
     usuario: Usuario = Depends(requer("ativos.ver")),
+    empresa_id: int = Depends(escopo_empresa),
 ) -> list[AtivoOut]:
     return ativo_service.listar(
         db,
+        empresa_id,
         status=status_filtro.value if status_filtro else None,
         busca=busca,
         page=page,
@@ -41,10 +44,13 @@ def criar(
     request: Request,
     db: Session = Depends(get_db),
     usuario: Usuario = Depends(requer("ativos.criar")),
+    empresa_id: int = Depends(escopo_empresa),
 ) -> AtivoDetalheOut:
     dados = ativo_service.separar_especificacoes(corpo.model_dump())
 
-    ativo = Ativo(**dados, criado_por=usuario.id, atualizado_por=usuario.id)
+    ativo = Ativo(
+        **dados, empresa_id=empresa_id, criado_por=usuario.id, atualizado_por=usuario.id
+    )
     db.add(ativo)
 
     try:
@@ -56,13 +62,14 @@ def criar(
         ) from None
 
     auditoria.registrar(
-        db, acao="insert", usuario_id=usuario.id, tabela="ativos", registro_id=ativo.id,
+        db, acao="insert", usuario_id=usuario.id, empresa_id=empresa_id,
+        tabela="ativos", registro_id=ativo.id,
         dados_depois=auditoria.snapshot(ativo), request=request,
     )
     db.commit()
     db.refresh(ativo)
 
-    return _detalhe(db, ativo)
+    return _detalhe(db, ativo, empresa_id)
 
 
 @router.get("/{ativo_id}", response_model=AtivoDetalheOut)
@@ -70,8 +77,9 @@ def detalhar(
     ativo_id: int,
     db: Session = Depends(get_db),
     usuario: Usuario = Depends(requer("ativos.ver")),
+    empresa_id: int = Depends(escopo_empresa),
 ) -> AtivoDetalheOut:
-    return _detalhe(db, _obter(db, ativo_id))
+    return _detalhe(db, _obter(db, ativo_id, empresa_id), empresa_id)
 
 
 @router.patch("/{ativo_id}", response_model=AtivoDetalheOut)
@@ -81,8 +89,9 @@ def atualizar(
     request: Request,
     db: Session = Depends(get_db),
     usuario: Usuario = Depends(requer("ativos.editar")),
+    empresa_id: int = Depends(escopo_empresa),
 ) -> AtivoDetalheOut:
-    ativo = _obter(db, ativo_id)
+    ativo = _obter(db, ativo_id, empresa_id)
     antes = auditoria.snapshot(ativo)
 
     dados = corpo.model_dump(exclude_unset=True)
@@ -106,13 +115,14 @@ def atualizar(
         ) from None
 
     auditoria.registrar(
-        db, acao="update", usuario_id=usuario.id, tabela="ativos", registro_id=ativo.id,
+        db, acao="update", usuario_id=usuario.id, empresa_id=empresa_id,
+        tabela="ativos", registro_id=ativo.id,
         dados_antes=antes, dados_depois=auditoria.snapshot(ativo), request=request,
     )
     db.commit()
     db.refresh(ativo)
 
-    return _detalhe(db, ativo)
+    return _detalhe(db, ativo, empresa_id)
 
 
 @router.delete("/{ativo_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -121,11 +131,16 @@ def deletar(
     request: Request,
     db: Session = Depends(get_db),
     usuario: Usuario = Depends(requer("ativos.deletar")),
+    empresa_id: int = Depends(escopo_empresa),
 ) -> Response:
-    ativo = _obter(db, ativo_id)
+    ativo = _obter(db, ativo_id, empresa_id)
     antes = auditoria.snapshot(ativo)
 
-    tem_manutencao = db.scalar(select(Manutencao.id).where(Manutencao.ativo_id == ativo.id).limit(1))
+    tem_manutencao = db.scalar(
+        select(Manutencao.id)
+        .where(Manutencao.ativo_id == ativo.id, Manutencao.empresa_id == empresa_id)
+        .limit(1)
+    )
     if tem_manutencao is not None:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
@@ -134,7 +149,8 @@ def deletar(
 
     db.delete(ativo)
     auditoria.registrar(
-        db, acao="delete", usuario_id=usuario.id, tabela="ativos", registro_id=ativo_id,
+        db, acao="delete", usuario_id=usuario.id, empresa_id=empresa_id,
+        tabela="ativos", registro_id=ativo_id,
         dados_antes=antes, request=request,
     )
     db.commit()
@@ -144,32 +160,34 @@ def deletar(
 
 # --- Auxiliares -------------------------------------------------------------
 
-def _obter(db: Session, ativo_id: int) -> Ativo:
-    ativo = db.get(Ativo, ativo_id)
-    if ativo is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Ativo não encontrado.")
-    return ativo
+def _obter(db: Session, ativo_id: int, empresa_id: int) -> Ativo:
+    """Ativo de OUTRA empresa responde 404, igual a um id inexistente."""
+    return obter_do_escopo(
+        db, Ativo, ativo_id, empresa_id, nao_encontrado="Ativo não encontrado."
+    )
 
 
-def _detalhe(db: Session, ativo: Ativo) -> AtivoDetalheOut:
-    ultima, atrasada = ativo_service.calculados(db, ativo.id)
+def _detalhe(db: Session, ativo: Ativo, empresa_id: int) -> AtivoDetalheOut:
+    ultima, atrasada = ativo_service.calculados(db, ativo.id, empresa_id)
 
     manutencoes = db.scalars(
         select(Manutencao)
-        .where(Manutencao.ativo_id == ativo.id)
+        .where(Manutencao.ativo_id == ativo.id, Manutencao.empresa_id == empresa_id)
         .order_by(Manutencao.data_servico.desc().nullslast(), Manutencao.id.desc())
         .limit(10)
     ).all()
 
     planos = db.scalars(
-        select(PlanoPreventiva).where(PlanoPreventiva.ativo_id == ativo.id)
+        select(PlanoPreventiva).where(
+            PlanoPreventiva.ativo_id == ativo.id, PlanoPreventiva.empresa_id == empresa_id
+        )
     ).all()
 
     return AtivoDetalheOut(
         **{
             coluna.key: getattr(ativo, coluna.key)
             for coluna in ativo.__table__.columns
-            if coluna.key not in {"criado_por", "atualizado_por"}
+            if coluna.key not in {"criado_por", "atualizado_por", "empresa_id"}
         },
         criado_por=ativo.criado_por,
         atualizado_por=ativo.atualizado_por,

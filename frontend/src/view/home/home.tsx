@@ -32,7 +32,7 @@ export default function HomeScreen() {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
 
   const { assets, metrics, isLoading, error } = useAssets();
-  const { temPermissao } = useAuth();
+  const { temPermissao, usuario } = useAuth();
 
   const filteredAssets = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -53,6 +53,10 @@ export default function HomeScreen() {
         <View style={styles.header}>
           <View style={styles.headerText}>
             <Text style={styles.logoText}>CMMS</Text>
+            {/* Multi-tenant: deixa explícito de qual empresa são os dados na tela. */}
+            {usuario?.empresa?.nome ? (
+              <Text style={styles.companyName}>{usuario.empresa.nome}</Text>
+            ) : null}
             <Text style={styles.subtitle}>Painel de controle</Text>
           </View>
           <Pressable style={styles.profileButton} onPress={handleNotImplemented}>
