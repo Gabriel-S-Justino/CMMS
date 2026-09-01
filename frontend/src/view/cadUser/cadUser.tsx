@@ -14,6 +14,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { styles } from "./cadUser.style";
 import { ROUTES } from "@/constants/routes";
+import { api, isApiConfigured } from "@/services/api";
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const SENHA_MIN_LENGTH = 8;
@@ -41,6 +42,8 @@ export default function CadUserScreen() {
   const [mostrarConfirmarSenha, setMostrarConfirmarSenha] = useState(false);
   const [carregando, setCarregando] = useState(false);
   const [errors, setErrors] = useState<FormErrors>({});
+  const [erroGeral, setErroGeral] = useState<string | null>(null);
+  const [sucesso, setSucesso] = useState<string | null>(null);
 
   const validate = (): FormErrors => {
     const nextErrors: FormErrors = {};
@@ -74,6 +77,8 @@ export default function CadUserScreen() {
   const handleCadastrar = async () => {
     const nextErrors = validate();
     setErrors(nextErrors);
+    setErroGeral(null);
+    setSucesso(null);
 
     if (Object.keys(nextErrors).length > 0) {
       return;
@@ -82,7 +87,30 @@ export default function CadUserScreen() {
     setCarregando(true);
 
     try {
-      router.back();
+      if (isApiConfigured()) {
+        // POST /auth/registrar cria o usuário com ativo = false;
+        // um admin precisa aprovar antes do primeiro login.
+        await api.post(
+          "/auth/registrar",
+          {
+            username: username.trim(),
+            cargo: cargo.trim(),
+            empresa: empresa.trim(),
+            funcao: funcao.trim(),
+            email: email.trim(),
+            senha,
+          },
+          { auth: false }
+        );
+      }
+
+      setSucesso("Solicitação enviada, aguarde aprovação");
+    } catch (e) {
+      setErroGeral(
+        e instanceof Error
+          ? e.message
+          : "Não foi possível enviar a solicitação. Tente novamente."
+      );
     } finally {
       setCarregando(false);
     }
@@ -265,6 +293,9 @@ export default function CadUserScreen() {
                 <Text style={styles.errorText}>{errors.confirmarSenha}</Text>
               )}
             </View>
+
+            {erroGeral && <Text style={styles.errorText}>{erroGeral}</Text>}
+            {sucesso && <Text style={styles.successText}>{sucesso}</Text>}
 
             {/* Cadastrar */}
             <Pressable

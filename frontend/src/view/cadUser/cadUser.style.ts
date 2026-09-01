@@ -76,6 +76,13 @@ export const styles = StyleSheet.create({
     color: '#DC2626',
     marginTop: 6,
   },
+  successText: {
+    fontSize: 13,
+    color: '#15803D',
+    marginTop: 6,
+    textAlign: 'center',
+    fontWeight: '600',
+  },
   passwordContainer: {
     height: 52,
     flexDirection: 'row',

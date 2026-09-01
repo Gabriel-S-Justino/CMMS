@@ -8,6 +8,7 @@ import { AssetCard } from '@/components/asset-card';
 import { FilterChip } from '@/components/filter-chip';
 import { MetricCard } from '@/components/metric-card';
 import { useAssets } from '@/hooks/use-assets';
+import { useAuth } from '@/context/auth-context';
 import { Asset, AssetStatus } from '@/types/assets';
 import { ROUTES } from '@/constants/routes';
 import { router } from 'expo-router';
@@ -31,6 +32,7 @@ export default function HomeScreen() {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
 
   const { assets, metrics, isLoading, error } = useAssets();
+  const { temPermissao } = useAuth();
 
   const filteredAssets = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -74,11 +76,14 @@ export default function HomeScreen() {
             <View style={styles.section}>
               <View style={styles.sectionHeader}>
                 <Text style={styles.sectionTitle}>Ativos</Text>
-                <Pressable style={styles.addButton}
-                  onPress={() => router.push(ROUTES.REGISTER_ASSET as any)}
-                >
-                  <Text style={styles.addButtonText}>+ Novo ativo</Text>
-                </Pressable>
+                {temPermissao('ativos.criar') && (
+                  <Pressable
+                    style={styles.addButton}
+                    onPress={() => router.push(ROUTES.REGISTER_ASSET)}
+                  >
+                    <Text style={styles.addButtonText}>+ Novo ativo</Text>
+                  </Pressable>
+                )}
               </View>
 
               <TextInput

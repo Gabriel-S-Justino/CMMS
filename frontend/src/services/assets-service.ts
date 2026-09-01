@@ -1,21 +1,22 @@
 // src/services/assets-service.ts
+//
+// Ponto único de acesso a dados de ativos e métricas do dashboard.
+// Com EXPO_PUBLIC_API_URL definida fala com o backend
+// (GET /ativos e GET /dashboard/metricas — docs/cmms-backend-spec.md §4).
+// Sem ela, cai nos mocks, pra o app continuar rodando sem backend no ar.
 
-// Ponto único de acesso a dados de ativos.
-// Hoje conversa com o mock; no futuro troca para fetch/axios sem
-// que o resto do app perceba, porque a assinatura das funções continua igual.
-
+import { api, isApiConfigured } from '@/services/api';
 import { Asset, DashboardMetric } from '@/types/assets';
 import { MOCK_ASSETS, MOCK_METRICS } from '@/data/mock-assets';
 
 export async function fetchAssets(): Promise<Asset[]> {
-  // TODO: substituir pela chamada real, ex.:
-  // const response = await fetch(`${API_URL}/assets`);
-  // if (!response.ok) throw new Error('Falha ao carregar ativos');
-  // return response.json();
-  return MOCK_ASSETS;
+  if (!isApiConfigured()) return MOCK_ASSETS;
+
+  return api.get<Asset[]>('/ativos');
 }
 
 export async function fetchDashboardMetrics(): Promise<DashboardMetric[]> {
-  // TODO: substituir pela chamada real
-  return MOCK_METRICS;
+  if (!isApiConfigured()) return MOCK_METRICS;
+
+  return api.get<DashboardMetric[]>('/dashboard/metricas');
 }

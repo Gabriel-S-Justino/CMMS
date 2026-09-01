@@ -91,6 +91,14 @@ export const styles = StyleSheet.create({
     marginTop: 6,
   },
 
+  successText: {
+    fontSize: 13,
+    color: '#15803D',
+    marginTop: 6,
+    textAlign: 'center',
+    fontWeight: '600',
+  },
+
   recoveryButton: {
     height: 52,
     borderRadius: 10,
