@@ -20,6 +20,7 @@ from app.schemas.auth import (
     UsuarioSessao,
 )
 from app.schemas.common import MensagemResponse
+from app.schemas.empresa import EmpresaResumo
 from app.schemas.usuario import UsuarioOut
 from app.services import auth_service, usuario_service
 
@@ -32,6 +33,7 @@ def _sessao(usuario: Usuario) -> UsuarioSessao:
         username=usuario.username,
         perfil=usuario.perfil.nome if usuario.perfil else None,
         permissoes=usuario.permissoes,
+        empresa=EmpresaResumo(id=usuario.empresa.id, nome=usuario.empresa.nome),
     )
 
 
@@ -43,6 +45,7 @@ def login(request: Request, corpo: LoginRequest, db: Session = Depends(get_db)) 
     except auth_service.CadastroPendente:
         auditoria.registrar(
             db, acao="login_falho", tabela="usuarios", request=request,
+            empresa_id=_empresa_do_username(db, corpo.username),
             dados_depois={"username": corpo.username, "motivo": "aguardando aprovacao"},
         )
         db.commit()
@@ -52,6 +55,7 @@ def login(request: Request, corpo: LoginRequest, db: Session = Depends(get_db)) 
     except auth_service.ContaBloqueada as bloqueio:
         auditoria.registrar(
             db, acao="login_falho", tabela="usuarios", request=request,
+            empresa_id=_empresa_do_username(db, corpo.username),
             dados_depois={"username": corpo.username, "motivo": "conta bloqueada"},
         )
         db.commit()
@@ -66,6 +70,7 @@ def login(request: Request, corpo: LoginRequest, db: Session = Depends(get_db)) 
         # O commit aqui não é opcional: é ele que grava o contador de tentativas.
         auditoria.registrar(
             db, acao="login_falho", tabela="usuarios", request=request,
+            empresa_id=_empresa_do_username(db, corpo.username),
             dados_depois={"username": corpo.username, "motivo": "credenciais invalidas"},
         )
         db.commit()
@@ -75,8 +80,8 @@ def login(request: Request, corpo: LoginRequest, db: Session = Depends(get_db)) 
 
     access, refresh = auth_service.emitir_par_de_tokens(db, usuario)
     auditoria.registrar(
-        db, acao="login", usuario_id=usuario.id, tabela="usuarios",
-        registro_id=usuario.id, request=request,
+        db, acao="login", usuario_id=usuario.id, empresa_id=usuario.empresa_id,
+        tabela="usuarios", registro_id=usuario.id, request=request,
     )
     db.commit()
 
@@ -120,11 +125,18 @@ def registrar(
             db,
             username=corpo.username,
             cargo=corpo.cargo,
-            empresa=corpo.empresa,
+            codigo_convite=corpo.codigo_convite,
             funcao=corpo.funcao,
             email=corpo.email,
             senha=corpo.senha,
         )
+    except auth_service.ConviteInvalido:
+        # Mensagem genérica de propósito: não dizemos se o código existe mas a
+        # empresa está desativada, nem confirmamos códigos por tentativa e erro.
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Código da empresa inválido. Peça o código ao administrador da sua empresa.",
+        ) from None
     except auth_service.UsuarioJaExiste as erro:
         rotulo = "nome de usuário" if erro.campo == "username" else "e-mail"
         raise HTTPException(
@@ -132,8 +144,8 @@ def registrar(
         ) from None
 
     auditoria.registrar(
-        db, acao="insert", tabela="usuarios", registro_id=usuario.id,
-        dados_depois=auditoria.snapshot(usuario), request=request,
+        db, acao="insert", empresa_id=usuario.empresa_id, tabela="usuarios",
+        registro_id=usuario.id, dados_depois=auditoria.snapshot(usuario), request=request,
     )
     db.commit()
 
@@ -173,8 +185,9 @@ def redefinir_senha(
         ) from None
 
     auditoria.registrar(
-        db, acao="update", usuario_id=usuario.id, tabela="usuarios",
-        registro_id=usuario.id, dados_depois={"senha": "redefinida"}, request=request,
+        db, acao="update", usuario_id=usuario.id, empresa_id=usuario.empresa_id,
+        tabela="usuarios", registro_id=usuario.id,
+        dados_depois={"senha": "redefinida"}, request=request,
     )
     db.commit()
 
@@ -184,3 +197,9 @@ def redefinir_senha(
 @router.get("/me", response_model=UsuarioOut)
 def me(usuario: Usuario = Depends(usuario_logado)) -> UsuarioOut:
     return UsuarioOut(**usuario_service.para_saida(usuario))
+
+
+def _empresa_do_username(db: Session, username: str) -> int | None:
+    """Empresa a associar ao log de um login falho. Nulo se o username não existe."""
+    alvo = auth_service.buscar_por_username(db, username)
+    return alvo.empresa_id if alvo is not None else None

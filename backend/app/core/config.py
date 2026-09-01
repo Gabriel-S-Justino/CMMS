@@ -32,12 +32,17 @@ class Settings(BaseSettings):
     UPLOAD_DIR: str = "/app/uploads"
     MAX_UPLOAD_BYTES: int = 10 * 1024 * 1024  # 10 MB
 
-    # --- Admin inicial (usado só pelo seed) ---
-    # Sem default para ADMIN_PASSWORD de propósito: a app não sobe sem ela, em
-    # vez de subir silenciosamente com uma senha de admin conhecida.
+    # --- Usuários iniciais (usados só pelo seed) ---
+    # Sem default para as senhas de propósito: a app não sobe sem elas, em vez
+    # de subir silenciosamente com uma senha de admin conhecida.
+    # ADMIN_* é o administrador da empresa "Demo";
+    # SUPERADMIN_* é o administrador da plataforma, na empresa "Plataforma".
     ADMIN_USERNAME: str = "admin"
     ADMIN_EMAIL: str = "admin@cmms.local"
     ADMIN_PASSWORD: str
+    SUPERADMIN_USERNAME: str = "superadmin"
+    SUPERADMIN_EMAIL: str = "superadmin@cmms.local"
+    SUPERADMIN_PASSWORD: str
 
     @property
     def cors_origins_list(self) -> list[str]:

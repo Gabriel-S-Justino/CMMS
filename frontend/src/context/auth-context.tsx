@@ -36,11 +36,18 @@ import {
 
 const REFRESH_TOKEN_KEY = 'cmms.refreshToken';
 
+export type Empresa = {
+  id: number | string;
+  nome: string;
+};
+
 export type Usuario = {
   id: number | string;
   username: string;
   perfil: string | null;
   permissoes: string[];
+  /** Tenant do usuário: todo dado que ele vê pertence a esta empresa. */
+  empresa: Empresa;
 };
 
 type LoginResponse = SessionTokens & {

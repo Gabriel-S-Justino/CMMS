@@ -34,6 +34,9 @@ services:
       ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
       ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@cmms.local}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:?defina ADMIN_PASSWORD no .env}
+      SUPERADMIN_USERNAME: ${SUPERADMIN_USERNAME:-superadmin}
+      SUPERADMIN_EMAIL: ${SUPERADMIN_EMAIL:-superadmin@cmms.local}
+      SUPERADMIN_PASSWORD: ${SUPERADMIN_PASSWORD:?defina SUPERADMIN_PASSWORD no .env}
       # Proxies reversos confiáveis para o uvicorn honrar X-Forwarded-For/Proto.
       # Vazio (padrão) = nenhum: o IP do cliente é sempre o do peer TCP.
       FORWARDED_ALLOW_IPS: ${FORWARDED_ALLOW_IPS:-}

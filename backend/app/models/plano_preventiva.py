@@ -25,6 +25,7 @@ class PlanoPreventiva(Base):
             "(intervalo_dias IS NOT NULL) <> (intervalo_horas IS NOT NULL)",
             name="ck_planos_preventiva_um_intervalo",
         ),
+        Index("ix_planos_preventiva_empresa_id", "empresa_id"),
         Index("ix_planos_preventiva_ativo_id", "ativo_id"),
         Index(
             "ix_planos_preventiva_proxima_prevista",
@@ -34,6 +35,7 @@ class PlanoPreventiva(Base):
     )
 
     id: Mapped[int] = mapped_column(primary_key=True)
+    empresa_id: Mapped[int] = mapped_column(ForeignKey("empresas.id"), nullable=False)
     ativo_id: Mapped[int] = mapped_column(ForeignKey("ativos.id", ondelete="CASCADE"), nullable=False)
     descricao: Mapped[str] = mapped_column(String(200), nullable=False)
     intervalo_dias: Mapped[int | None] = mapped_column(Integer)

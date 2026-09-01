@@ -8,6 +8,7 @@ export const styles = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   headerText: { gap: 4 },
   logoText: { fontSize: 28, fontWeight: '800', color: '#0F172A', letterSpacing: 1 },
+  companyName: { fontSize: 15, fontWeight: '700', color: '#2563EB' },
   subtitle: { fontSize: 14, color: '#64748B' },
   profileButton: {
     width: 44,

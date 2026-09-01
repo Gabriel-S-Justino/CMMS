@@ -14,6 +14,7 @@ from app.core.security import (
     precisa_rehash,
     verificar_senha,
 )
+from app.models.empresa import Empresa
 from app.models.refresh_token import RefreshToken
 from app.models.token_recuperacao import TokenRecuperacaoSenha
 from app.models.usuario import Usuario
@@ -51,12 +52,30 @@ class UsuarioJaExiste(Exception):
         self.campo = campo
 
 
+class ConviteInvalido(Exception):
+    """Código de convite inexistente ou de empresa desativada."""
+
+
 def buscar_por_username(db: Session, username: str) -> Usuario | None:
     return db.scalar(select(Usuario).where(Usuario.username == username))
 
 
 def buscar_por_email(db: Session, email: str) -> Usuario | None:
     return db.scalar(select(Usuario).where(Usuario.email == email))
+
+
+def buscar_empresa_por_convite(db: Session, codigo: str) -> Empresa | None:
+    """Empresa ATIVA dona do código. Comparação sem espaços e sem caixa: o
+    usuário digita o código à mão."""
+    normalizado = codigo.strip().upper()
+    if not normalizado:
+        return None
+
+    return db.scalar(
+        select(Empresa).where(
+            Empresa.codigo_convite == normalizado, Empresa.ativo.is_(True)
+        )
+    )
 
 
 # --- Login / tokens ---------------------------------------------------------
@@ -164,12 +183,21 @@ def registrar_usuario(
     *,
     username: str,
     cargo: str,
-    empresa: str,
+    codigo_convite: str,
     funcao: str,
     email: str,
     senha: str,
 ) -> Usuario:
-    """Cria o usuário INATIVO: um admin aprova e define o perfil depois."""
+    """Cria o usuário INATIVO na empresa do convite.
+
+    Um admin DAQUELA empresa aprova e define o perfil depois. O código de
+    convite é a única coisa que amarra o cadastro a um tenant — não existe mais
+    campo de empresa digitado à mão.
+    """
+    empresa = buscar_empresa_por_convite(db, codigo_convite)
+    if empresa is None:
+        raise ConviteInvalido
+
     if buscar_por_username(db, username) is not None:
         raise UsuarioJaExiste("username")
 
@@ -181,7 +209,7 @@ def registrar_usuario(
         email=email,
         senha_hash=hash_senha(senha),
         cargo=cargo,
-        empresa=empresa,
+        empresa_id=empresa.id,
         funcao=funcao,
         perfil_id=None,
         ativo=False,

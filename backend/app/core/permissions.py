@@ -66,3 +66,23 @@ def requer(codigo: str) -> Callable[[Usuario], Usuario]:
         return usuario
 
     return verificar
+
+
+def requer_qualquer(*codigos: str) -> Callable[[Usuario], Usuario]:
+    """Exige PELO MENOS UMA das permissões.
+
+    Existe para rotas que dois papéis diferentes alcançam por caminhos
+    diferentes — o admin da empresa por `usuarios.aprovar`, o superadmin por
+    `usuarios.gerenciar`. Quem passa aqui ainda precisa passar pela checagem de
+    escopo de empresa dentro da rota.
+    """
+
+    def verificar(usuario: Usuario = Depends(usuario_logado)) -> Usuario:
+        if not any(usuario.tem_permissao(codigo) for codigo in codigos):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"Permissão negada: {' ou '.join(codigos)}.",
+            )
+        return usuario
+
+    return verificar

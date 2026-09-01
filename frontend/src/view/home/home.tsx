@@ -51,7 +51,7 @@ export default function HomeScreen() {
     status: statusFilter === 'all' ? undefined : statusFilter,
   });
 
-  const { temPermissao } = useAuth();
+  const { temPermissao, usuario } = useAuth();
 
   // Voltar do cadastro ou do detalhe pode ter mudado a lista. O primeiro foco é
   // pulado: o useAssets já carrega ao montar, e recarregar aqui daria duas
@@ -83,6 +83,10 @@ export default function HomeScreen() {
         <View style={styles.header}>
           <View style={styles.headerText}>
             <Text style={styles.logoText}>CMMS</Text>
+            {/* Multi-tenant: deixa explícito de qual empresa são os dados na tela. */}
+            {usuario?.empresa?.nome ? (
+              <Text style={styles.companyName}>{usuario.empresa.nome}</Text>
+            ) : null}
             <Text style={styles.subtitle}>Painel de controle</Text>
           </View>
           <Pressable style={styles.profileButton} onPress={handleNotImplemented}>

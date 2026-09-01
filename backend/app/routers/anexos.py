@@ -19,6 +19,7 @@ from app.core import auditoria
 from app.core.config import settings
 from app.core.database import get_db
 from app.core.permissions import requer, usuario_logado
+from app.core.tenant import escopo_empresa, obter_do_escopo
 from app.core.rate_limit import limiter
 from app.core.security import criar_download_token, decodificar_token
 from app.models.anexo import Anexo
@@ -49,6 +50,7 @@ async def enviar(
     ativo_id: int | None = Form(default=None, alias="ativoId"),
     db: Session = Depends(get_db),
     usuario: Usuario = Depends(requer("anexos.enviar")),
+    empresa_id: int = Depends(escopo_empresa),
 ) -> AnexoOut:
     if manutencao_id is None and ativo_id is None:
         raise HTTPException(
@@ -56,11 +58,17 @@ async def enviar(
             detail="Informe manutencaoId ou ativoId.",
         )
 
-    if manutencao_id is not None and db.get(Manutencao, manutencao_id) is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Manutenção não encontrada.")
+    # O dono do anexo tem de estar na mesma empresa; fora dela, 404.
+    if manutencao_id is not None:
+        obter_do_escopo(
+            db, Manutencao, manutencao_id, empresa_id,
+            nao_encontrado="Manutenção não encontrada.",
+        )
 
-    if ativo_id is not None and db.get(Ativo, ativo_id) is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Ativo não encontrado.")
+    if ativo_id is not None:
+        obter_do_escopo(
+            db, Ativo, ativo_id, empresa_id, nao_encontrado="Ativo não encontrado."
+        )
 
     conteudo = await arquivo.read()
 
@@ -76,6 +84,7 @@ async def enviar(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(erro)) from None
 
     anexo = Anexo(
+        empresa_id=empresa_id,
         manutencao_id=manutencao_id,
         ativo_id=ativo_id,
         tipo=tipo,
@@ -89,7 +98,8 @@ async def enviar(
     db.flush()
 
     auditoria.registrar(
-        db, acao="insert", usuario_id=usuario.id, tabela="anexos", registro_id=anexo.id,
+        db, acao="insert", usuario_id=usuario.id, empresa_id=empresa_id,
+        tabela="anexos", registro_id=anexo.id,
         dados_depois=auditoria.snapshot(anexo), request=request,
     )
     db.commit()
@@ -103,9 +113,10 @@ def detalhar(
     anexo_id: int,
     db: Session = Depends(get_db),
     usuario: Usuario = Depends(usuario_logado),
+    empresa_id: int = Depends(escopo_empresa),
 ) -> AnexoOut:
     """Metadados + uma URL de download assinada e temporária."""
-    return _com_url(_obter(db, anexo_id))
+    return _com_url(_obter(db, anexo_id, empresa_id))
 
 
 @router.get("/{anexo_id}/download")
@@ -126,7 +137,12 @@ def baixar(
             status_code=status.HTTP_403_FORBIDDEN, detail="Link inválido ou expirado."
         )
 
-    anexo = _obter(db, anexo_id)
+    # Sem escopo de empresa aqui de propósito: a rota é pública e a autorização
+    # vem da assinatura do token, que já amarra o anexo_id exato.
+    anexo = db.get(Anexo, anexo_id)
+    if anexo is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Anexo não encontrado.")
+
     caminho = anexo_service.caminho_absoluto(anexo.caminho_arquivo)
 
     if not caminho.is_file():
@@ -147,14 +163,16 @@ def deletar(
     request: Request,
     db: Session = Depends(get_db),
     usuario: Usuario = Depends(requer("anexos.deletar")),
+    empresa_id: int = Depends(escopo_empresa),
 ) -> Response:
-    anexo = _obter(db, anexo_id)
+    anexo = _obter(db, anexo_id, empresa_id)
     antes = auditoria.snapshot(anexo)
     nome_no_disco = anexo.caminho_arquivo
 
     db.delete(anexo)
     auditoria.registrar(
-        db, acao="delete", usuario_id=usuario.id, tabela="anexos", registro_id=anexo_id,
+        db, acao="delete", usuario_id=usuario.id, empresa_id=empresa_id,
+        tabela="anexos", registro_id=anexo_id,
         dados_antes=antes, request=request,
     )
     db.commit()
@@ -165,8 +183,7 @@ def deletar(
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
-def _obter(db: Session, anexo_id: int) -> Anexo:
-    anexo = db.get(Anexo, anexo_id)
-    if anexo is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Anexo não encontrado.")
-    return anexo
+def _obter(db: Session, anexo_id: int, empresa_id: int) -> Anexo:
+    return obter_do_escopo(
+        db, Anexo, anexo_id, empresa_id, nao_encontrado="Anexo não encontrado."
+    )

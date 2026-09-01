@@ -8,6 +8,30 @@ máquinas, veículos, equipamentos elétricos e infraestrutura.
 **Responda sempre em português.** Comentários de código, mensagens de commit,
 textos de interface e conversa com o usuário — tudo em português.
 
+## Regra número dois — multi-tenant
+
+O sistema atende várias empresas no mesmo banco. **Toda query filtra por
+`empresa_id` via `escopo_empresa`; nunca acesse `Ativo`/`Manutencao`/`Peca`/
+`Prestador`/`PlanoPreventiva`/`Anexo` sem ela.**
+
+```python
+@router.get("/ativos")
+def listar(
+    usuario: Usuario = Depends(requer("ativos.ver")),
+    empresa_id: int = Depends(escopo_empresa),   # obrigatório
+): ...
+```
+
+- Carregar por id é sempre `obter_do_escopo(db, Modelo, id, empresa_id, ...)`.
+- Referência cruzada (o `ativoId` de uma manutenção, o `pecaId` de um item)
+  valida que o alvo é da mesma empresa — pelo mesmo helper.
+- Registro de outra empresa responde **404, nunca 403**: um 403 confirmaria
+  que aquele id existe em outro tenant.
+- `escopo_empresa_admin` devolve `None` para o superadmin (vê tudo). Use só em
+  `usuarios`, `auditoria` e `empresas`, onde isso é intencional.
+
+Detalhes completos na seção 8 da spec.
+
 ## Documentação
 
 - `docs/cmms-backend-spec.md` — **a fonte da verdade**. Schema do banco, RBAC,
@@ -21,17 +45,22 @@ textos de interface e conversa com o usuário — tudo em português.
 docs/        # spec do backend e diagramas
 frontend/    # app Expo / React Native
 backend/     # API FastAPI
-docker-compose.yml           # postgres + api (postgres SEM porta publicada)
-docker-compose.override.yml  # ajustes locais, fora do Git (publica o postgres)
-.env.example                 # copie para .env
+docker-compose.yml                   # postgres + api (postgres SEM porta publicada)
+docker-compose.override.example.yml  # receita do override local (versionada)
+docker-compose.override.yml          # o override de verdade, fora do Git
+.env.example                         # copie para .env
 ```
 
 ```bash
-cp .env.example .env         # ajuste POSTGRES_PASSWORD, JWT_SECRET, ADMIN_PASSWORD
+cp .env.example .env   # ajuste POSTGRES_PASSWORD, JWT_SECRET, ADMIN_PASSWORD, SUPERADMIN_PASSWORD
+cp docker-compose.override.example.yml docker-compose.override.yml   # opcional: postgres no host
 docker compose up -d --build
 docker compose exec api alembic upgrade head
-docker compose exec api python -m seeds.perfis_permissoes
+docker compose exec api python -m seeds.perfis_permissoes   # imprime o código de convite da Demo
 ```
+
+A imagem carrega o código copiado (`COPY . .`), então **`docker compose restart`
+não recarrega alteração de código** — use `docker compose up -d --build api`.
 
 ## Frontend (`frontend/`)
 
@@ -78,6 +107,9 @@ data/         # mocks usados enquanto o backend não está no ar
   `__DEV__`; em produção web a sessão fica **exclusivamente em memória**.
 - Permissões vêm do backend em `usuario.permissoes`; para esconder ação na UI use
   `temPermissao('ativos.criar')` — os códigos estão na tabela da seção 2.3 da spec.
+- `usuario.empresa` (`{id, nome}`) é o tenant da sessão. O cadastro em
+  `cadUser.tsx` não pede o nome da empresa: pede o **código da empresa**
+  (`codigoConvite`), que o admin fornece.
 - `EXPO_PUBLIC_API_URL` (ver `frontend/.env.example`) define a base da API, já com
   o prefixo `/api/v1`. **Sem ela o app roda em modo mock** e continua funcionando
   sem backend — mantenha esse fallback ao criar novos services.
@@ -108,25 +140,27 @@ do front.
 ### Organização de `backend/`
 
 ```
-alembic/versions/   # 0001_schema_inicial, 0002_bloqueio_por_tentativas
+alembic/versions/   # 0001_schema_inicial (já multi-tenant)
 app/
   main.py           # FastAPI, CORS, slowapi, /api/v1/health, include dos routers
   core/
     config.py       # Settings (pydantic-settings) lido do .env
     database.py     # engine, SessionLocal, Base, get_db
     security.py     # argon2, JWT HS256, tokens opacos (sha256)
-    permissions.py  # usuario_logado + requer("<permissao>")
+    permissions.py  # usuario_logado + requer("<permissao>") / requer_qualquer(...)
+    tenant.py       # escopo_empresa, escopo_empresa_admin, obter_do_escopo
     auditoria.py    # snapshot() e registrar() em logs_auditoria
     rate_limit.py   # limiter do slowapi
-  models/           # tabelas SQLAlchemy (usuario, perfil, permissao, ativo,
+  models/           # tabelas SQLAlchemy (empresa, usuario, perfil, permissao, ativo,
                     # manutencao, plano_preventiva, prestador, peca, anexo,
                     # refresh_token, token_recuperacao, log_auditoria, enums)
   schemas/          # Pydantic (CamelModel) — auth, usuario, ativo, manutencao,
                     # plano, prestador, peca, anexo, dashboard, auditoria, common
   services/         # regra de negócio, sem FastAPI dentro
-  routers/          # auth, usuarios, ativos, dashboard, manutencoes, planos,
-                    # prestadores, pecas, anexos, auditoria
-seeds/              # perfis_permissoes.py — perfis, permissões e admin inicial
+  routers/          # auth, empresas, usuarios, ativos, dashboard, manutencoes,
+                    # planos, prestadores, pecas, anexos, auditoria
+seeds/              # perfis_permissoes.py — empresas Plataforma/Demo, perfis,
+                    # permissões, superadmin e admin inicial
 uploads/            # volume dos anexos, fora do webroot
 ```
 
@@ -150,7 +184,15 @@ um módulo por domínio. Detalhes completos na seção 3 da spec.
   Nada de ler `X-Forwarded-For` na mão — quem trata isso é o uvicorn, rodando com
   `--proxy-headers` e confiando apenas nos proxies de `FORWARDED_ALLOW_IPS`.
 - **Postgres sem porta publicada** no `docker-compose.yml`. Para DBeaver/psql na
-  máquina de dev, use o `docker-compose.override.yml` (fora do Git).
+  máquina de dev, copie o `docker-compose.override.example.yml`.
+- **Isolamento entre empresas** é requisito de segurança, não conveniência: veja
+  a "Regra número dois" no topo. Vazar dado de um tenant para outro é o pior bug
+  que este sistema pode ter.
+- **Superadmin** (`empresas.gerenciar` + `usuarios.gerenciar`) administra a
+  plataforma e **não tem nenhuma permissão operacional** — `GET /ativos` como
+  superadmin responde 403. Ele vive na empresa "Plataforma".
+- **Código de convite** nunca vai para `logs_auditoria` (está em `CAMPOS_SENSIVEIS`)
+  e só aparece em `GET /empresas/minha` para quem tem `usuarios.aprovar`.
 
 ### Variáveis de ambiente (`.env`, ver `.env.example`)
 
@@ -164,8 +206,10 @@ um módulo por domínio. Detalhes completos na seção 3 da spec.
 | `CORS_ORIGINS` | `http://localhost:8081` | separadas por vírgula |
 | `FORWARDED_ALLOW_IPS` | vazio | proxies confiáveis do uvicorn; nunca `*` na internet |
 | `POSTGRES_HOST_PORT` | `5432` | só tem efeito com o `docker-compose.override.yml` |
-| `ADMIN_USERNAME` / `ADMIN_EMAIL` | `admin` / `admin@cmms.local` | usados pelo seed |
+| `ADMIN_USERNAME` / `ADMIN_EMAIL` | `admin` / `admin@cmms.local` | admin da empresa "Demo" |
 | `ADMIN_PASSWORD` | — | **obrigatória, sem default**: a API não sobe sem ela |
+| `SUPERADMIN_USERNAME` / `SUPERADMIN_EMAIL` | `superadmin` / `superadmin@cmms.local` | admin da plataforma |
+| `SUPERADMIN_PASSWORD` | — | **obrigatória, sem default** |
 
 ### Comandos
 
