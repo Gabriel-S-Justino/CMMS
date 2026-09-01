@@ -15,8 +15,16 @@ from sqlalchemy.orm import Session
 from app.core.database import Base
 from app.models.log_auditoria import LogAuditoria
 
-# Campos que jamais podem cair no log.
-CAMPOS_SENSIVEIS = {"senha", "senha_hash", "token", "token_hash", "nova_senha"}
+# Campos que jamais podem cair no log. `codigo_convite` entra na lista porque
+# quem lê o log passaria a conseguir cadastrar-se na empresa.
+CAMPOS_SENSIVEIS = {
+    "senha",
+    "senha_hash",
+    "token",
+    "token_hash",
+    "nova_senha",
+    "codigo_convite",
+}
 
 
 def _serializavel(valor: Any) -> Any:
@@ -59,14 +67,18 @@ def registrar(
     *,
     acao: str,
     usuario_id: int | None = None,
+    empresa_id: int | None = None,
     tabela: str | None = None,
     registro_id: int | None = None,
     dados_antes: dict[str, Any] | None = None,
     dados_depois: dict[str, Any] | None = None,
     request: Request | None = None,
 ) -> None:
+    """`empresa_id` fica nulo só quando não há tenant conhecido — por exemplo,
+    um login falho de username que não existe."""
     db.add(
         LogAuditoria(
+            empresa_id=empresa_id,
             usuario_id=usuario_id,
             acao=acao,
             tabela=tabela,

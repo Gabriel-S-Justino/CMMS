@@ -1,6 +1,7 @@
 from pydantic import EmailStr, Field
 
 from app.schemas.common import CamelModel
+from app.schemas.empresa import EmpresaResumo
 
 
 class LoginRequest(CamelModel):
@@ -15,6 +16,7 @@ class UsuarioSessao(CamelModel):
     username: str
     perfil: str | None = None
     permissoes: list[str] = []
+    empresa: EmpresaResumo
 
 
 class TokenResponse(CamelModel):
@@ -33,11 +35,15 @@ class RefreshResponse(CamelModel):
 
 
 class RegistroRequest(CamelModel):
-    """Corresponde ao formulário de `view/cadUser/cadUser.tsx`."""
+    """Corresponde ao formulário de `view/cadUser/cadUser.tsx`.
+
+    `codigoConvite` substituiu o antigo campo livre `empresa`: agora a empresa
+    não é digitada, é resolvida pelo código que o administrador dela forneceu.
+    """
 
     username: str = Field(min_length=3, max_length=50)
     cargo: str = Field(min_length=1, max_length=100)
-    empresa: str = Field(min_length=1, max_length=150)
+    codigo_convite: str = Field(min_length=1, max_length=32)
     funcao: str = Field(min_length=1, max_length=100)
     email: EmailStr
     senha: str = Field(min_length=8, max_length=128)

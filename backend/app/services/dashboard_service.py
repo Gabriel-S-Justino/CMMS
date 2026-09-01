@@ -20,18 +20,25 @@ def _formatar_reais(valor: Decimal) -> str:
     return f"R$ {with_pontos},{centavos}"
 
 
-def metricas(db: Session, usuario: Usuario) -> list[DashboardMetric]:
-    """Mesmos ids que o MOCK_METRICS do front: assets, open, alerts, cost."""
-    total_ativos = db.scalar(select(func.count()).select_from(Ativo)) or 0
+def metricas(db: Session, usuario: Usuario, empresa_id: int) -> list[DashboardMetric]:
+    """Mesmos ids que o MOCK_METRICS do front: assets, open, alerts, cost.
+
+    Toda agregação é da empresa do escopo — nunca do sistema inteiro.
+    """
+    total_ativos = (
+        db.scalar(select(func.count()).select_from(Ativo).where(Ativo.empresa_id == empresa_id))
+        or 0
+    )
 
     manutencoes_abertas = (
         db.scalar(
             select(func.count())
             .select_from(Manutencao)
             .where(
+                Manutencao.empresa_id == empresa_id,
                 Manutencao.status.in_(
                     [StatusManutencao.aberta, StatusManutencao.em_andamento]
-                )
+                ),
             )
         )
         or 0
@@ -39,7 +46,9 @@ def metricas(db: Session, usuario: Usuario) -> list[DashboardMetric]:
 
     alertas = (
         db.scalar(
-            select(func.count()).select_from(Ativo).where(Ativo.status == StatusAtivo.alert)
+            select(func.count())
+            .select_from(Ativo)
+            .where(Ativo.empresa_id == empresa_id, Ativo.status == StatusAtivo.alert)
         )
         or 0
     )
@@ -55,6 +64,7 @@ def metricas(db: Session, usuario: Usuario) -> list[DashboardMetric]:
         hoje = date.today()
         custo_mes = db.scalar(
             select(func.coalesce(func.sum(Manutencao.custo_total), 0)).where(
+                Manutencao.empresa_id == empresa_id,
                 Manutencao.data_servico.is_not(None),
                 func.extract("year", Manutencao.data_servico) == hoje.year,
                 func.extract("month", Manutencao.data_servico) == hoje.month,

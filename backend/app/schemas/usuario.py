@@ -3,6 +3,7 @@ from datetime import datetime
 from pydantic import EmailStr, Field
 
 from app.schemas.common import CamelModel
+from app.schemas.empresa import EmpresaResumo
 
 
 class UsuarioOut(CamelModel):
@@ -12,7 +13,8 @@ class UsuarioOut(CamelModel):
     # quebra em domínios reservados (.local) que já estão gravados no banco.
     email: str
     cargo: str | None = None
-    empresa: str | None = None
+    # Antes era texto livre digitado no cadastro; agora é a empresa de verdade.
+    empresa: EmpresaResumo
     funcao: str | None = None
     perfil: str | None = None
     permissoes: list[str] = []
@@ -26,9 +28,11 @@ class AprovarUsuarioRequest(CamelModel):
 
 
 class UsuarioUpdate(CamelModel):
+    """`empresa_id` não está aqui de propósito: mover usuário de tenant não é
+    uma edição de perfil, e permitir isso abriria caminho para escalar acesso."""
+
     email: EmailStr | None = None
     cargo: str | None = Field(default=None, max_length=100)
-    empresa: str | None = Field(default=None, max_length=150)
     funcao: str | None = Field(default=None, max_length=100)
     perfil_id: int | None = None
     ativo: bool | None = None

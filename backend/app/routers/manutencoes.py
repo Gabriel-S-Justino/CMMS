@@ -9,11 +9,13 @@ from sqlalchemy.orm import Session
 from app.core import auditoria
 from app.core.database import get_db
 from app.core.permissions import requer
+from app.core.tenant import escopo_empresa, obter_do_escopo
 from app.models.ativo import Ativo
 from app.models.enums import StatusManutencao, TipoManutencao
 from app.models.manutencao import Manutencao
 from app.models.manutencao_peca import ManutencaoPeca
 from app.models.peca import Peca
+from app.models.prestador import Prestador
 from app.models.usuario import Usuario
 from app.schemas.manutencao import (
     ManutencaoCreate,
@@ -34,8 +36,9 @@ def listar(
     page: int = Query(default=1, ge=1),
     db: Session = Depends(get_db),
     usuario: Usuario = Depends(requer("manutencoes.ver")),
+    empresa_id: int = Depends(escopo_empresa),
 ) -> list[ManutencaoOut]:
-    query = select(Manutencao)
+    query = select(Manutencao).where(Manutencao.empresa_id == empresa_id)
 
     if ativo_id is not None:
         query = query.where(Manutencao.ativo_id == ativo_id)
@@ -57,12 +60,26 @@ def criar(
     request: Request,
     db: Session = Depends(get_db),
     usuario: Usuario = Depends(requer("manutencoes.criar")),
+    empresa_id: int = Depends(escopo_empresa),
 ) -> ManutencaoOut:
-    if db.get(Ativo, corpo.ativo_id) is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Ativo não encontrado.")
+    # Referência cruzada: o ativo (e o prestador, se vier) precisam ser da mesma
+    # empresa. Se não forem, 404 — apontar para fora do tenant é indistinguível
+    # de apontar para um id que não existe.
+    obter_do_escopo(
+        db, Ativo, corpo.ativo_id, empresa_id, nao_encontrado="Ativo não encontrado."
+    )
+
+    if corpo.prestador_id is not None:
+        obter_do_escopo(
+            db, Prestador, corpo.prestador_id, empresa_id,
+            nao_encontrado="Prestador não encontrado.",
+        )
 
     manutencao = Manutencao(
-        **corpo.model_dump(), criado_por=usuario.id, atualizado_por=usuario.id
+        **corpo.model_dump(),
+        empresa_id=empresa_id,
+        criado_por=usuario.id,
+        atualizado_por=usuario.id,
     )
     manutencao.custo_pecas = Decimal("0")
     manutencao.custo_total = manutencao.custo_mao_de_obra or Decimal("0")
@@ -71,7 +88,7 @@ def criar(
     db.flush()
 
     auditoria.registrar(
-        db, acao="insert", usuario_id=usuario.id, tabela="manutencoes",
+        db, acao="insert", usuario_id=usuario.id, empresa_id=empresa_id, tabela="manutencoes",
         registro_id=manutencao.id, dados_depois=auditoria.snapshot(manutencao), request=request,
     )
     db.commit()
@@ -85,8 +102,9 @@ def detalhar(
     manutencao_id: int,
     db: Session = Depends(get_db),
     usuario: Usuario = Depends(requer("manutencoes.ver")),
+    empresa_id: int = Depends(escopo_empresa),
 ) -> ManutencaoOut:
-    return ManutencaoOut.model_validate(_obter(db, manutencao_id))
+    return ManutencaoOut.model_validate(_obter(db, manutencao_id, empresa_id))
 
 
 @router.patch("/{manutencao_id}", response_model=ManutencaoOut)
@@ -96,20 +114,30 @@ def atualizar(
     request: Request,
     db: Session = Depends(get_db),
     usuario: Usuario = Depends(requer("manutencoes.editar")),
+    empresa_id: int = Depends(escopo_empresa),
 ) -> ManutencaoOut:
-    manutencao = _obter(db, manutencao_id)
+    manutencao = _obter(db, manutencao_id, empresa_id)
     _garantir_edicao(usuario, manutencao)
 
     antes = auditoria.snapshot(manutencao)
 
-    for campo, valor in corpo.model_dump(exclude_unset=True).items():
+    dados = corpo.model_dump(exclude_unset=True)
+
+    # Trocar o prestador só vale se o novo também for da empresa.
+    if dados.get("prestador_id") is not None:
+        obter_do_escopo(
+            db, Prestador, dados["prestador_id"], empresa_id,
+            nao_encontrado="Prestador não encontrado.",
+        )
+
+    for campo, valor in dados.items():
         setattr(manutencao, campo, valor)
 
     manutencao.atualizado_por = usuario.id
     manutencao_service.recalcular_custos(db, manutencao)
 
     auditoria.registrar(
-        db, acao="update", usuario_id=usuario.id, tabela="manutencoes",
+        db, acao="update", usuario_id=usuario.id, empresa_id=empresa_id, tabela="manutencoes",
         registro_id=manutencao.id, dados_antes=antes,
         dados_depois=auditoria.snapshot(manutencao), request=request,
     )
@@ -125,13 +153,14 @@ def deletar(
     request: Request,
     db: Session = Depends(get_db),
     usuario: Usuario = Depends(requer("manutencoes.deletar")),
+    empresa_id: int = Depends(escopo_empresa),
 ) -> Response:
-    manutencao = _obter(db, manutencao_id)
+    manutencao = _obter(db, manutencao_id, empresa_id)
     antes = auditoria.snapshot(manutencao)
 
     db.delete(manutencao)
     auditoria.registrar(
-        db, acao="delete", usuario_id=usuario.id, tabela="manutencoes",
+        db, acao="delete", usuario_id=usuario.id, empresa_id=empresa_id, tabela="manutencoes",
         registro_id=manutencao_id, dados_antes=antes, request=request,
     )
     db.commit()
@@ -148,13 +177,14 @@ def adicionar_peca(
     request: Request,
     db: Session = Depends(get_db),
     usuario: Usuario = Depends(requer("manutencoes.editar")),
+    empresa_id: int = Depends(escopo_empresa),
 ) -> ManutencaoOut:
-    manutencao = _obter(db, manutencao_id)
+    manutencao = _obter(db, manutencao_id, empresa_id)
     _garantir_edicao(usuario, manutencao)
 
-    peca = db.get(Peca, corpo.peca_id)
-    if peca is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Peça não encontrada.")
+    peca = obter_do_escopo(
+        db, Peca, corpo.peca_id, empresa_id, nao_encontrado="Peça não encontrada."
+    )
 
     # Congela o custo unitário no momento do uso.
     custo = corpo.custo_unitario_na_data
@@ -184,7 +214,8 @@ def adicionar_peca(
     manutencao_service.recalcular_custos(db, manutencao)
 
     auditoria.registrar(
-        db, acao="insert", usuario_id=usuario.id, tabela="manutencao_pecas",
+        db, acao="insert", usuario_id=usuario.id, empresa_id=empresa_id,
+        tabela="manutencao_pecas",
         registro_id=manutencao.id,
         dados_depois={"pecaId": peca.id, "quantidade": str(corpo.quantidade)}, request=request,
     )
@@ -201,8 +232,9 @@ def remover_peca(
     request: Request,
     db: Session = Depends(get_db),
     usuario: Usuario = Depends(requer("manutencoes.editar")),
+    empresa_id: int = Depends(escopo_empresa),
 ) -> Response:
-    manutencao = _obter(db, manutencao_id)
+    manutencao = _obter(db, manutencao_id, empresa_id)
     _garantir_edicao(usuario, manutencao)
 
     item = db.get(ManutencaoPeca, (manutencao_id, peca_id))
@@ -216,7 +248,8 @@ def remover_peca(
     manutencao_service.recalcular_custos(db, manutencao)
 
     auditoria.registrar(
-        db, acao="delete", usuario_id=usuario.id, tabela="manutencao_pecas",
+        db, acao="delete", usuario_id=usuario.id, empresa_id=empresa_id,
+        tabela="manutencao_pecas",
         registro_id=manutencao_id, dados_antes={"pecaId": peca_id}, request=request,
     )
     db.commit()
@@ -226,13 +259,10 @@ def remover_peca(
 
 # --- Auxiliares -------------------------------------------------------------
 
-def _obter(db: Session, manutencao_id: int) -> Manutencao:
-    manutencao = db.get(Manutencao, manutencao_id)
-    if manutencao is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Manutenção não encontrada."
-        )
-    return manutencao
+def _obter(db: Session, manutencao_id: int, empresa_id: int) -> Manutencao:
+    return obter_do_escopo(
+        db, Manutencao, manutencao_id, empresa_id, nao_encontrado="Manutenção não encontrada."
+    )
 
 
 def _garantir_edicao(usuario: Usuario, manutencao: Manutencao) -> None:

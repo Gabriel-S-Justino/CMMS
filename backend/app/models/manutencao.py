@@ -28,6 +28,7 @@ from app.models.enums import (
 class Manutencao(Base):
     __tablename__ = "manutencoes"
     __table_args__ = (
+        Index("ix_manutencoes_empresa_id", "empresa_id"),
         Index("ix_manutencoes_ativo_data", "ativo_id", "data_servico"),
         Index("ix_manutencoes_prestador_id", "prestador_id"),
         Index("ix_manutencoes_tipo", "tipo"),
@@ -35,6 +36,7 @@ class Manutencao(Base):
     )
 
     id: Mapped[int] = mapped_column(primary_key=True)
+    empresa_id: Mapped[int] = mapped_column(ForeignKey("empresas.id"), nullable=False)
     ativo_id: Mapped[int] = mapped_column(ForeignKey("ativos.id"), nullable=False)
     prestador_id: Mapped[int | None] = mapped_column(ForeignKey("prestadores.id"))
     tipo: Mapped[TipoManutencao] = mapped_column(

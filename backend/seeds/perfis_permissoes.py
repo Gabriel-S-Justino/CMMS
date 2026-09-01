@@ -1,9 +1,15 @@
-"""Seed idempotente: perfis, permissões e o admin inicial.
+"""Seed idempotente: empresas, perfis, permissões, superadmin e admin inicial.
 
 Roda com:  python -m seeds.perfis_permissoes
 Pode rodar quantas vezes quiser — nada é duplicado.
 
-A matriz de permissões é exatamente a da tabela da seção 2.3 da spec.
+A matriz de permissões é a da tabela da seção 2.3 da spec, mais o perfil
+`superadmin` da seção "Multi-tenant".
+
+Cria duas empresas:
+  - "Plataforma": onde mora o superadmin. Não tem dado operacional.
+  - "Demo": empresa de trabalho, com o admin do .env. O código de convite dela
+    é impresso no fim para você cadastrar os primeiros usuários.
 """
 
 from sqlalchemy import select
@@ -12,9 +18,13 @@ from sqlalchemy.orm import Session
 from app.core.config import settings
 from app.core.database import SessionLocal
 from app.core.security import hash_senha
+from app.models.empresa import Empresa, gerar_codigo_convite
 from app.models.perfil import Perfil
 from app.models.permissao import Permissao
-from app.models.usuario import Usuario
+from app.models.usuario import PERFIL_SUPERADMIN, Usuario
+
+EMPRESA_PLATAFORMA = "Plataforma"
+EMPRESA_DEMO = "Demo"
 
 # --- Permissões: codigo -> descrição ----------------------------------------
 PERMISSOES: dict[str, str] = {
@@ -48,6 +58,7 @@ PERMISSOES: dict[str, str] = {
     "usuarios.gerenciar": "Gerenciar usuários",
     "perfis.gerenciar": "Gerenciar perfis e permissões",
     "auditoria.ver": "Consultar logs de auditoria",
+    "empresas.gerenciar": "Criar e administrar empresas (plataforma)",
 }
 
 # --- Perfis: nome -> (descrição, permissões) --------------------------------
@@ -96,8 +107,17 @@ ADMIN = [
     "auditoria.ver",
 ]
 
+# Superadmin administra a PLATAFORMA, não o CMMS: cria empresas e mexe em
+# usuários de qualquer uma delas. De propósito não tem nenhuma permissão
+# operacional — não vê ativo, manutenção nem custo de empresa alguma.
+SUPERADMIN = [
+    "empresas.gerenciar",
+    "usuarios.gerenciar",
+]
+
 PERFIS: dict[str, tuple[str, list[str]]] = {
-    "admin": ("Acesso total ao sistema", ADMIN),
+    PERFIL_SUPERADMIN: ("Administra empresas e usuários da plataforma", SUPERADMIN),
+    "admin": ("Acesso total à própria empresa", ADMIN),
     "gerente": ("Gerencia ativos, manutenções, cadastros e custos", GERENTE),
     "funcionario": ("Registra e edita as próprias manutenções", FUNCIONARIO),
     "leitura": ("Somente consulta", LEITURA),
@@ -137,45 +157,100 @@ def semear_perfis(db: Session, permissoes: dict[str, Permissao]) -> dict[str, Pe
     return existentes
 
 
-def semear_admin(db: Session, perfis: dict[str, Perfil]) -> tuple[Usuario, bool]:
-    """Cria o admin do .env se ainda não existir. Devolve (usuario, foi_criado)."""
-    admin = db.scalar(select(Usuario).where(Usuario.username == settings.ADMIN_USERNAME))
+def semear_empresa(db: Session, nome: str) -> Empresa:
+    """Empresa pelo nome, criando se não existir. O código de convite é preservado."""
+    empresa = db.scalar(select(Empresa).where(Empresa.nome == nome))
 
-    if admin is not None:
-        # Nunca sobrescreve a senha de um admin que já existe.
-        admin.perfil_id = perfis["admin"].id
-        admin.ativo = True
+    if empresa is None:
+        empresa = Empresa(nome=nome, codigo_convite=gerar_codigo_convite())
+        db.add(empresa)
         db.flush()
-        return admin, False
 
-    admin = Usuario(
-        username=settings.ADMIN_USERNAME,
-        email=settings.ADMIN_EMAIL,
-        senha_hash=hash_senha(settings.ADMIN_PASSWORD),
-        cargo="Administrador",
-        empresa="CMMS",
-        funcao="Administrador do sistema",
-        perfil_id=perfis["admin"].id,
+    return empresa
+
+
+def semear_usuario(
+    db: Session,
+    *,
+    username: str,
+    email: str,
+    senha: str,
+    perfil: Perfil,
+    empresa: Empresa,
+    cargo: str,
+    funcao: str,
+) -> tuple[Usuario, bool]:
+    """Cria o usuário se não existir. Devolve (usuario, foi_criado).
+
+    Nunca sobrescreve a senha de quem já existe — rodar o seed de novo não
+    ressuscita a senha do .env por cima de uma que já foi trocada.
+    """
+    usuario = db.scalar(select(Usuario).where(Usuario.username == username))
+
+    if usuario is not None:
+        usuario.perfil_id = perfil.id
+        usuario.ativo = True
+        db.flush()
+        return usuario, False
+
+    usuario = Usuario(
+        username=username,
+        email=email,
+        senha_hash=hash_senha(senha),
+        cargo=cargo,
+        empresa_id=empresa.id,
+        funcao=funcao,
+        perfil_id=perfil.id,
         ativo=True,
     )
-    db.add(admin)
+    db.add(usuario)
     db.flush()
-    return admin, True
+    return usuario, True
 
 
 def main() -> None:
     with SessionLocal() as db:
         permissoes = semear_permissoes(db)
         perfis = semear_perfis(db, permissoes)
-        admin, criado = semear_admin(db, perfis)
+
+        plataforma = semear_empresa(db, EMPRESA_PLATAFORMA)
+        demo = semear_empresa(db, EMPRESA_DEMO)
+
+        superadmin, super_criado = semear_usuario(
+            db,
+            username=settings.SUPERADMIN_USERNAME,
+            email=settings.SUPERADMIN_EMAIL,
+            senha=settings.SUPERADMIN_PASSWORD,
+            perfil=perfis[PERFIL_SUPERADMIN],
+            empresa=plataforma,
+            cargo="Superadministrador",
+            funcao="Administrador da plataforma",
+        )
+
+        admin, admin_criado = semear_usuario(
+            db,
+            username=settings.ADMIN_USERNAME,
+            email=settings.ADMIN_EMAIL,
+            senha=settings.ADMIN_PASSWORD,
+            perfil=perfis["admin"],
+            empresa=demo,
+            cargo="Administrador",
+            funcao="Administrador do sistema",
+        )
+
         db.commit()
+
+        def situacao(criado: bool) -> str:
+            return "criado." if criado else "já existia — senha preservada."
 
         print(f"Permissões: {len(permissoes)}")
         print(f"Perfis: {', '.join(sorted(perfis))}")
-        print(
-            f"Admin '{admin.username}' "
-            + ("criado." if criado else "já existia — senha preservada.")
-        )
+        print(f"Empresas: {plataforma.nome}, {demo.nome}")
+        print(f"Superadmin '{superadmin.username}' ({plataforma.nome}) {situacao(super_criado)}")
+        print(f"Admin '{admin.username}' ({demo.nome}) {situacao(admin_criado)}")
+        print()
+        print(f"Código de convite da empresa '{demo.nome}': {demo.codigo_convite}")
+        print("Use esse código no cadastro para entrar como usuário da empresa.")
 
 
 if __name__ == "__main__":

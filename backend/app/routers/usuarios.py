@@ -7,7 +7,8 @@ from sqlalchemy.orm import Session
 
 from app.core import auditoria
 from app.core.database import get_db
-from app.core.permissions import requer
+from app.core.permissions import requer, requer_qualquer
+from app.core.tenant import escopo_empresa_admin
 from app.models.perfil import Perfil
 from app.models.permissao import Permissao
 from app.models.usuario import Usuario
@@ -32,11 +33,14 @@ router = APIRouter(tags=["usuarios"])
 def listar_usuarios(
     pendentes: bool | None = Query(default=None),
     db: Session = Depends(get_db),
-    usuario: Usuario = Depends(requer("usuarios.ver")),
+    # Gerenciar usuários pressupõe conseguir listá-los: o superadmin chega aqui
+    # por `usuarios.gerenciar`, o admin da empresa por `usuarios.ver`.
+    usuario: Usuario = Depends(requer_qualquer("usuarios.ver", "usuarios.gerenciar")),
+    empresa_id: int | None = Depends(escopo_empresa_admin),
 ) -> list[UsuarioOut]:
     return [
         UsuarioOut(**usuario_service.para_saida(u))
-        for u in usuario_service.listar(db, pendentes=pendentes)
+        for u in usuario_service.listar(db, empresa_id, pendentes=pendentes)
     ]
 
 
@@ -46,9 +50,11 @@ def aprovar_usuario(
     corpo: AprovarUsuarioRequest,
     request: Request,
     db: Session = Depends(get_db),
-    usuario: Usuario = Depends(requer("usuarios.aprovar")),
+    # Dois caminhos legítimos: o admin da empresa (usuarios.aprovar) e o
+    # superadmin (usuarios.gerenciar). O escopo é conferido logo abaixo.
+    usuario: Usuario = Depends(requer_qualquer("usuarios.aprovar", "usuarios.gerenciar")),
 ) -> UsuarioOut:
-    alvo = _obter_usuario(db, usuario_id)
+    alvo = _obter_usuario(db, usuario_id, usuario)
     antes = auditoria.snapshot(alvo)
 
     try:
@@ -57,7 +63,8 @@ def aprovar_usuario(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(erro)) from None
 
     auditoria.registrar(
-        db, acao="aprovacao", usuario_id=usuario.id, tabela="usuarios", registro_id=alvo.id,
+        db, acao="aprovacao", usuario_id=usuario.id, empresa_id=alvo.empresa_id,
+        tabela="usuarios", registro_id=alvo.id,
         dados_antes=antes, dados_depois=auditoria.snapshot(alvo), request=request,
     )
     db.commit()
@@ -74,7 +81,7 @@ def atualizar_usuario(
     db: Session = Depends(get_db),
     usuario: Usuario = Depends(requer("usuarios.gerenciar")),
 ) -> UsuarioOut:
-    alvo = _obter_usuario(db, usuario_id)
+    alvo = _obter_usuario(db, usuario_id, usuario)
     antes = auditoria.snapshot(alvo)
 
     for campo, valor in corpo.model_dump(exclude_unset=True).items():
@@ -89,7 +96,8 @@ def atualizar_usuario(
         ) from None
 
     auditoria.registrar(
-        db, acao="update", usuario_id=usuario.id, tabela="usuarios", registro_id=alvo.id,
+        db, acao="update", usuario_id=usuario.id, empresa_id=alvo.empresa_id,
+        tabela="usuarios", registro_id=alvo.id,
         dados_antes=antes, dados_depois=auditoria.snapshot(alvo), request=request,
     )
     db.commit()
@@ -209,10 +217,23 @@ def definir_permissoes_do_perfil(
 
 # --- Auxiliares -------------------------------------------------------------
 
-def _obter_usuario(db: Session, usuario_id: int) -> Usuario:
+def _obter_usuario(db: Session, usuario_id: int, solicitante: Usuario) -> Usuario:
+    """Um admin só alcança usuários da própria empresa; o superadmin, qualquer um.
+
+    Fora do escopo devolvemos 404 — o mesmo que um id inexistente — para não
+    confirmar a existência de contas de outras empresas.
+    """
     alvo = db.get(Usuario, usuario_id)
-    if alvo is None:
+
+    fora_do_escopo = (
+        alvo is not None
+        and not solicitante.eh_superadmin
+        and alvo.empresa_id != solicitante.empresa_id
+    )
+
+    if alvo is None or fora_do_escopo:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Usuário não encontrado.")
+
     return alvo
 
 

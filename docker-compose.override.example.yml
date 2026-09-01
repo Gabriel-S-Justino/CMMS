@@ -1,0 +1,18 @@
+# Receita do override local. Copie e ajuste:
+#
+#     cp docker-compose.override.example.yml docker-compose.override.yml
+#
+# O docker-compose.override.yml está no .gitignore e o Docker Compose o aplica
+# automaticamente por cima do docker-compose.yml — não precisa passar -f.
+#
+# Serve para publicar o Postgres no host (DBeaver/psql), coisa que o compose
+# versionado não faz de propósito: em produção o banco só é alcançável pela
+# rede interna do compose.
+services:
+  postgres:
+    ports:
+      # Só no loopback. Atenção no WSL2 + Docker Desktop: este bind fica no
+      # loopback da VM do WSL. De dentro do WSL funciona; para alcançar de um
+      # cliente rodando no Windows, troque por "5432:5432" — ciente de que aí a
+      # porta passa a escutar em todas as interfaces da máquina.
+      - "127.0.0.1:${POSTGRES_HOST_PORT:-5432}:5432"
