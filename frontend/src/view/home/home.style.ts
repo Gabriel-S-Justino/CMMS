@@ -45,6 +45,7 @@ export const styles = StyleSheet.create({
     color: '#0F172A',
   },
   filterRow: { flexDirection: 'row', gap: 8 },
+  listLoading: { paddingVertical: 40 },
   assetsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
   emptyState: { alignItems: 'center', paddingVertical: 40, gap: 6 },
   emptyTitle: { fontSize: 15, fontWeight: '700', color: '#0F172A' },

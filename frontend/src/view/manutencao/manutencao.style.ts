@@ -1,0 +1,97 @@
+//manutencao.style.ts
+import { StyleSheet } from 'react-native';
+
+export const styles = StyleSheet.create({
+  safeArea: { flex: 1, backgroundColor: '#F8FAFC' },
+  keyboardView: { flex: 1 },
+  scrollView: { flex: 1 },
+  container: { flexGrow: 1, paddingHorizontal: 24, paddingVertical: 32 },
+  centered: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24, gap: 12 },
+
+  header: { marginBottom: 24, gap: 8 },
+  voltar: { fontSize: 14, fontWeight: '600', color: '#2563EB' },
+  logoText: { fontSize: 28, fontWeight: '800', color: '#0F172A', letterSpacing: 1 },
+  subtitle: { fontSize: 14, color: '#64748B' },
+
+  formContainer: { width: '100%', maxWidth: 480, alignSelf: 'center' },
+
+  sectionTitle: { fontSize: 22, fontWeight: '700', color: '#0F172A', marginBottom: 6 },
+  sectionDescription: { fontSize: 14, lineHeight: 21, color: '#64748B', marginBottom: 24 },
+  subsectionTitle: { fontSize: 16, fontWeight: '700', color: '#0F172A', marginTop: 8, marginBottom: 16 },
+
+  fieldContainer: { marginBottom: 18 },
+  label: { fontSize: 14, fontWeight: '600', color: '#334155', marginBottom: 8 },
+  input: {
+    height: 52,
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    borderRadius: 10,
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 16,
+    fontSize: 15,
+    color: '#0F172A',
+  },
+  textArea: {
+    minHeight: 110,
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    borderRadius: 10,
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    fontSize: 15,
+    color: '#0F172A',
+  },
+  inputError: { borderColor: '#DC2626' },
+  errorText: { fontSize: 12, color: '#DC2626', marginTop: 6 },
+  helperText: { fontSize: 12, color: '#64748B', marginTop: 6 },
+
+  selectContainer: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  selectButton: {
+    minHeight: 42,
+    paddingHorizontal: 14,
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    borderRadius: 10,
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'center',
+  },
+  selectButtonActive: { borderColor: '#2563EB', backgroundColor: '#EFF6FF' },
+  selectButtonText: { fontSize: 13, fontWeight: '600', color: '#475569' },
+  selectButtonTextActive: { color: '#2563EB' },
+
+  avisoBox: { backgroundColor: '#FEE2E2', borderRadius: 10, padding: 14, marginBottom: 18 },
+  avisoTexto: { fontSize: 13, color: '#B91C1C', lineHeight: 19 },
+
+  navigationButtons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+    marginTop: 12,
+    paddingBottom: 16,
+  },
+  backButton: {
+    minHeight: 52,
+    flex: 1,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  backButtonText: { fontSize: 14, fontWeight: '700', color: '#475569' },
+  nextButton: {
+    minHeight: 52,
+    flex: 1.5,
+    borderRadius: 10,
+    backgroundColor: '#2563EB',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  nextButtonText: { fontSize: 15, fontWeight: '700', color: '#FFFFFF' },
+  buttonDisabled: { opacity: 0.55 },
+
+  erroTexto: { fontSize: 14, color: '#B91C1C', textAlign: 'center' },
+});

@@ -264,4 +264,23 @@ export const styles = StyleSheet.create({
   buttonDisabled: {
     opacity: 0.55,
   },
+
+  loadingContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  avisoBox: {
+    backgroundColor: '#FEE2E2',
+    borderRadius: 10,
+    padding: 14,
+    marginBottom: 18,
+  },
+
+  avisoTexto: {
+    fontSize: 13,
+    color: '#B91C1C',
+    lineHeight: 19,
+  },
 });

@@ -1,0 +1,118 @@
+//manutencaoDetalhe.style.ts
+import { StyleSheet } from 'react-native';
+
+export const styles = StyleSheet.create({
+  safeArea: { flex: 1, backgroundColor: '#F8FAFC' },
+  scrollView: { flex: 1 },
+  container: { flexGrow: 1, paddingHorizontal: 24, paddingVertical: 32, gap: 24 },
+  centered: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24, gap: 12 },
+
+  header: { gap: 12 },
+  voltar: { fontSize: 14, fontWeight: '600', color: '#2563EB' },
+  titulo: { fontSize: 24, fontWeight: '800', color: '#0F172A' },
+  subtitulo: { fontSize: 14, color: '#64748B' },
+
+  card: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    padding: 16,
+    gap: 14,
+  },
+  cardTitulo: { fontSize: 16, fontWeight: '700', color: '#0F172A' },
+  linha: { flexDirection: 'row', justifyContent: 'space-between', gap: 16 },
+  linhaLabel: { fontSize: 13, color: '#64748B', flexShrink: 1 },
+  linhaValor: { fontSize: 13, fontWeight: '600', color: '#0F172A', flexShrink: 1, textAlign: 'right' },
+  divisor: { height: 1, backgroundColor: '#E2E8F0' },
+  totalLabel: { fontSize: 14, fontWeight: '700', color: '#0F172A' },
+  totalValor: { fontSize: 18, fontWeight: '800', color: '#0F172A' },
+
+  descricao: { fontSize: 14, lineHeight: 21, color: '#334155' },
+
+  // --- Peças ---
+  secaoHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  pecaLinha: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E2E8F0',
+  },
+  pecaInfo: { flexShrink: 1, gap: 2 },
+  pecaNome: { fontSize: 14, fontWeight: '600', color: '#0F172A' },
+  pecaMeta: { fontSize: 12, color: '#64748B' },
+  pecaSubtotal: { fontSize: 14, fontWeight: '700', color: '#0F172A' },
+  removerTexto: { fontSize: 12, fontWeight: '700', color: '#B91C1C' },
+  vazioTexto: { fontSize: 13, color: '#64748B' },
+
+  // --- Formulário de peça ---
+  formPeca: { gap: 4, marginTop: 8 },
+  label: { fontSize: 14, fontWeight: '600', color: '#334155', marginBottom: 8 },
+  input: {
+    height: 52,
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    borderRadius: 10,
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 16,
+    fontSize: 15,
+    color: '#0F172A',
+  },
+  inputError: { borderColor: '#DC2626' },
+  fieldContainer: { marginBottom: 18 },
+  errorText: { fontSize: 12, color: '#DC2626', marginTop: 6 },
+  helperText: { fontSize: 12, color: '#64748B', marginTop: 6 },
+  linhaDupla: { flexDirection: 'row', gap: 12 },
+  metade: { flex: 1 },
+
+  // --- Botões ---
+  acoes: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
+  botaoPrimario: {
+    flex: 1,
+    minHeight: 48,
+    borderRadius: 10,
+    backgroundColor: '#2563EB',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  botaoPrimarioTexto: { fontSize: 14, fontWeight: '700', color: '#FFFFFF' },
+  botaoSecundario: {
+    flex: 1,
+    minHeight: 48,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  botaoSecundarioTexto: { fontSize: 14, fontWeight: '700', color: '#475569' },
+  botaoSucesso: {
+    flex: 1,
+    minHeight: 48,
+    borderRadius: 10,
+    backgroundColor: '#15803D',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  botaoSucessoTexto: { fontSize: 14, fontWeight: '700', color: '#FFFFFF' },
+  botaoPerigo: {
+    flex: 1,
+    minHeight: 48,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#FCA5A5',
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  botaoPerigoTexto: { fontSize: 14, fontWeight: '700', color: '#B91C1C' },
+  botaoDesabilitado: { opacity: 0.55 },
+
+  avisoBox: { backgroundColor: '#FEE2E2', borderRadius: 10, padding: 14 },
+  avisoTexto: { fontSize: 13, color: '#B91C1C', lineHeight: 19 },
+  erroTexto: { fontSize: 14, color: '#B91C1C', textAlign: 'center' },
+});
