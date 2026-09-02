@@ -94,6 +94,7 @@ hooks/        # use-assets, use-theme, use-color-scheme
 types/        # contratos de dados (Asset, Categoria, AssetStatus, DashboardMetric)
 constants/    # rotas, tema, labels e cores
 data/         # mocks usados enquanto o backend não está no ar
+utils/        # format.ts — conversões entre data/decimal da API e o que o usuário lê e digita
 ```
 
 ### Autenticação e chamadas de API
