@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -10,10 +10,17 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 
 import { styles } from './cadAtivos.style';
-import { Categoria } from '@/types/assets';
+import { createAsset, fetchAsset, updateAsset } from '@/services/assets-service';
+import { AssetInput, AssetStatus, Categoria } from '@/types/assets';
+import {
+  dataParaISO,
+  isoParaData,
+  numeroParaAPI,
+  numeroParaCampo,
+} from '@/utils/format';
 
 type FormErrors = {
   nome?: string;
@@ -89,6 +96,11 @@ const STATUS_OPTIONS = [
 ];
 
 export default function CadAtivosScreen() {
+  // Sem `id` cadastra (POST); com `id` edita o ativo existente (PATCH).
+  const { id } = useLocalSearchParams<{ id?: string }>();
+  const ativoId = id ? Number(id) : null;
+  const editando = ativoId !== null;
+
   const [etapa, setEtapa] = useState(1);
 
   // Identificação
@@ -132,6 +144,58 @@ export default function CadAtivosScreen() {
 
   const [errors, setErrors] = useState<FormErrors>({});
   const [carregando, setCarregando] = useState(false);
+  const [carregandoAtivo, setCarregandoAtivo] = useState(editando);
+  const [aviso, setAviso] = useState<string | null>(null);
+
+  // Em modo edição, traz o que já está gravado para dentro do formulário.
+  useEffect(() => {
+    if (ativoId === null) return;
+    let ativo = true;
+
+    fetchAsset(ativoId)
+      .then((dados) => {
+        if (!ativo) return;
+
+        setNome(dados.nome);
+        setCategoria(dados.categoria);
+        setTipo(dados.tipo ?? '');
+        setCodigo(dados.codigo ?? '');
+        setPatrimonio(dados.patrimonio ?? '');
+        setFabricante(dados.fabricante ?? '');
+        setModelo(dados.modelo ?? '');
+        setAno(dados.ano ? String(dados.ano) : '');
+        setNumeroSerie(dados.numeroSerie ?? '');
+        setLocalizacao(dados.localizacao ?? '');
+        setResponsavel(dados.responsavel ?? '');
+        setStatus(dados.status);
+        setQuilometragem(numeroParaCampo(dados.quilometragem));
+        setHorimetro(numeroParaCampo(dados.horimetroAtual));
+        setDataAquisicao(isoParaData(dados.dataAquisicao));
+        setFornecedor(dados.fornecedor ?? '');
+        setValorAquisicao(numeroParaCampo(dados.valorAquisicao));
+        setNumeroNotaFiscal(dados.numeroNotaFiscal ?? '');
+        setGarantia(isoParaData(dados.garantiaAte));
+        setObservacoes(dados.observacoes ?? '');
+
+        // Os campos por categoria vivem dentro de `especificacoes` no banco.
+        const especificacoes = dados.especificacoes ?? {};
+        setPlaca(especificacoes.placa ?? '');
+        setRenavam(especificacoes.renavam ?? '');
+        setChassi(especificacoes.chassi ?? '');
+        setCombustivel(especificacoes.combustivel ?? '');
+        setPotencia(especificacoes.potencia ?? '');
+        setTensao(especificacoes.tensao ?? '');
+        setCapacidade(especificacoes.capacidade ?? '');
+      })
+      .catch((e) => {
+        if (ativo) setAviso(e instanceof Error ? e.message : 'Não foi possível carregar o ativo.');
+      })
+      .finally(() => ativo && setCarregandoAtivo(false));
+
+    return () => {
+      ativo = false;
+    };
+  }, [ativoId]);
 
   const tiposDisponiveis = useMemo(() => {
     if (!categoria) return [];
@@ -213,27 +277,60 @@ export default function CadAtivosScreen() {
     setErrors({});
   };
 
+  /** Monta o corpo de POST/PATCH. Campo vazio vira null, não string vazia. */
+  const montarCorpo = (): AssetInput => {
+    const texto = (valor: string) => (valor.trim() ? valor.trim() : null);
+
+    return {
+      nome: nome.trim(),
+      categoria: categoria as Categoria,
+      tipo: texto(tipo),
+      codigo: texto(codigo),
+      patrimonio: texto(patrimonio),
+      fabricante: texto(fabricante),
+      modelo: texto(modelo),
+      ano: ano.trim() ? Number(ano) : null,
+      numeroSerie: texto(numeroSerie),
+      localizacao: texto(localizacao),
+      responsavel: texto(responsavel),
+      status: status as AssetStatus,
+      horimetroAtual: horimetro.trim() ? numeroParaAPI(horimetro) : null,
+      quilometragem: quilometragem.trim() ? numeroParaAPI(quilometragem) : null,
+      dataAquisicao: dataAquisicao.trim() ? dataParaISO(dataAquisicao) : null,
+      fornecedor: texto(fornecedor),
+      valorAquisicao: valorAquisicao.trim() ? numeroParaAPI(valorAquisicao) : null,
+      numeroNotaFiscal: texto(numeroNotaFiscal),
+      garantiaAte: garantia.trim() ? dataParaISO(garantia) : null,
+      observacoes: texto(observacoes),
+      // O backend move estes para dentro de `especificacoes` (JSONB).
+      placa: texto(placa),
+      renavam: texto(renavam),
+      chassi: texto(chassi),
+      combustivel: texto(combustivel),
+      potencia: texto(potencia),
+      tensao: texto(tensao),
+      capacidade: texto(capacidade),
+    };
+  };
+
   const handleCadastrar = async () => {
     if (!validateEtapa()) return;
 
     setCarregando(true);
+    setAviso(null);
 
     try {
-      /*
-       * TODO:
-       * Enviar os dados para o backend.
-       *
-       * A estrutura futura poderá ser:
-       *
-       * {
-       *   identification: {...},
-       *   technical: {...},
-       *   operation: {...},
-       *   acquisition: {...}
-       * }
-       */
+      if (editando && ativoId !== null) {
+        await updateAsset(ativoId, montarCorpo());
+      } else {
+        await createAsset(montarCorpo());
+      }
 
       router.back();
+    } catch (e) {
+      // 409 = código ou patrimônio já usados por outro ativo.
+      setAviso(e instanceof Error ? e.message : 'Não foi possível salvar o ativo.');
+      setEtapa(1);
     } finally {
       setCarregando(false);
     }
@@ -696,6 +793,16 @@ export default function CadAtivosScreen() {
     </>
   );
 
+  if (carregandoAtivo) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#2563EB" />
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <KeyboardAvoidingView
@@ -713,7 +820,7 @@ export default function CadAtivosScreen() {
               <Text style={styles.logoText}>CMMS</Text>
 
               <Text style={styles.subtitle}>
-                Cadastro de ativo
+                {editando ? 'Edição de ativo' : 'Cadastro de ativo'}
               </Text>
             </View>
 
@@ -735,6 +842,12 @@ export default function CadAtivosScreen() {
           </View>
 
           <View style={styles.formContainer}>
+            {aviso ? (
+              <View style={styles.avisoBox}>
+                <Text style={styles.avisoTexto}>{aviso}</Text>
+              </View>
+            ) : null}
+
             {etapa === 1 && renderEtapa1()}
             {etapa === 2 && renderEtapa2()}
             {etapa === 3 && renderEtapa3()}
@@ -774,7 +887,7 @@ export default function CadAtivosScreen() {
                     <ActivityIndicator color="#FFFFFF" />
                   ) : (
                     <Text style={styles.nextButtonText}>
-                      Cadastrar ativo
+                      {editando ? 'Salvar alterações' : 'Cadastrar ativo'}
                     </Text>
                   )}
                 </Pressable>

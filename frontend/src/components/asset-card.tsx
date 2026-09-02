@@ -30,14 +30,22 @@ export function AssetCard({ asset, onPress }: AssetCardProps) {
         <Text style={styles.name} numberOfLines={1}>
           {asset.name}
         </Text>
-        {asset.isMaintenanceOverdue && <View style={styles.overdueDot} />}
       </View>
 
       <Text style={styles.meta}>
         {CATEGORY_LABELS[asset.category]} · {asset.type} · {asset.location}
       </Text>
 
-      <StatusBadge status={asset.status} />
+      <View style={styles.badgeRow}>
+        <StatusBadge status={asset.status} />
+        {/* `isMaintenanceOverdue` vem calculado do backend: existe plano ativo
+            com proximaPrevista no passado. */}
+        {asset.isMaintenanceOverdue && (
+          <View style={styles.overdueBadge}>
+            <Text style={styles.overdueText}>Manutenção vencida</Text>
+          </View>
+        )}
+      </View>
 
       <Text style={styles.lastMaintenance}>
         {formatLastMaintenance(asset.lastMaintenanceDate)}
@@ -60,7 +68,15 @@ const styles = StyleSheet.create({
   cardPressed: { opacity: 0.7 },
   cardHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   name: { fontSize: 15, fontWeight: '700', color: '#0F172A', flexShrink: 1 },
-  overdueDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#DC2626', marginLeft: 8 },
+  badgeRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 6 },
+  overdueBadge: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 999,
+    backgroundColor: '#FEE2E2',
+  },
+  overdueText: { fontSize: 11, fontWeight: '700', color: '#B91C1C' },
   meta: { fontSize: 12, color: '#64748B' },
   lastMaintenance: { fontSize: 12, color: '#94A3B8' },
 });
