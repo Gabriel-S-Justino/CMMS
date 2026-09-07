@@ -12,9 +12,6 @@ Cria duas empresas:
     é impresso no fim para você cadastrar os primeiros usuários.
 """
 
-from sqlalchemy import select
-from sqlalchemy.orm import Session
-
 from app.core.config import settings
 from app.core.database import SessionLocal
 from app.core.security import hash_senha
@@ -22,6 +19,8 @@ from app.models.empresa import Empresa, gerar_codigo_convite
 from app.models.perfil import Perfil
 from app.models.permissao import Permissao
 from app.models.usuario import PERFIL_SUPERADMIN, Usuario
+from sqlalchemy import select
+from sqlalchemy.orm import Session
 
 EMPRESA_PLATAFORMA = "Plataforma"
 EMPRESA_DEMO = "Demo"
@@ -113,6 +112,8 @@ ADMIN = [
 SUPERADMIN = [
     "empresas.gerenciar",
     "usuarios.gerenciar",
+    "perfis.gerenciar",
+    "auditoria.ver",
 ]
 
 PERFIS: dict[str, tuple[str, list[str]]] = {
