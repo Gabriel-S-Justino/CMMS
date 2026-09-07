@@ -65,12 +65,7 @@ type Auditoria = {
   detalhes?: unknown;
 };
 
-type Tab =
-  | "overview"
-  | "empresas"
-  | "usuarios"
-  | "perfis"
-  | "auditoria";
+type Tab = "overview" | "empresas" | "usuarios" | "perfis" | "auditoria";
 
 type ModalState =
   | {
@@ -264,8 +259,7 @@ export default function SysAdmin() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] =
-    useState<StatusFilter>("todos");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("todos");
   const [modal, setModal] = useState<ModalState>(null);
 
   const superadmin = usuario?.perfil === "superadmin";
@@ -389,33 +383,17 @@ export default function SysAdmin() {
         <View style={styles.sidebar}>
           <Text style={styles.brand}>CMMS</Text>
 
-          <Text style={styles.brandSub}>
-            Administração da plataforma
-          </Text>
+          <Text style={styles.brandSub}>Administração da plataforma</Text>
 
           {(
-            [
-              "overview",
-              "empresas",
-              "usuarios",
-              "perfis",
-              "auditoria",
-            ] as Tab[]
+            ["overview", "empresas", "usuarios", "perfis", "auditoria"] as Tab[]
           ).map((x) => (
             <Pressable
               key={x}
               onPress={() => navigate(x)}
-              style={[
-                styles.navButton,
-                tab === x && styles.navButtonActive,
-              ]}
+              style={[styles.navButton, tab === x && styles.navButtonActive]}
             >
-              <Text
-                style={[
-                  styles.navText,
-                  tab === x && styles.navTextActive,
-                ]}
-              >
+              <Text style={[styles.navText, tab === x && styles.navTextActive]}>
                 {tabLabels[x]}
               </Text>
             </Pressable>
@@ -423,13 +401,9 @@ export default function SysAdmin() {
 
           <View style={styles.sidebarBottom}>
             <View style={styles.userMini}>
-              <Text style={styles.userName}>
-                {usuario.username}
-              </Text>
+              <Text style={styles.userName}>{usuario.username}</Text>
 
-              <Text style={styles.userRole}>
-                Superadministrador
-              </Text>
+              <Text style={styles.userRole}>Superadministrador</Text>
             </View>
 
             <Pressable
@@ -446,10 +420,7 @@ export default function SysAdmin() {
             style={styles.scroll}
             contentContainerStyle={styles.container}
             refreshControl={
-              <RefreshControl
-                refreshing={refreshing}
-                onRefresh={refresh}
-              />
+              <RefreshControl refreshing={refreshing} onRefresh={refresh} />
             }
           >
             <View style={styles.header}>
@@ -457,8 +428,8 @@ export default function SysAdmin() {
                 <Text style={styles.title}>{title}</Text>
 
                 <Text style={styles.subtitle}>
-                  Controle global da plataforma, tenants, usuários,
-                  perfis e rastreabilidade.
+                  Controle global da plataforma, tenants, usuários, perfis e
+                  rastreabilidade.
                 </Text>
               </View>
 
@@ -474,9 +445,7 @@ export default function SysAdmin() {
 
             {error && (
               <View style={styles.error}>
-                <Text style={styles.errorTitle}>
-                  Erro na operação
-                </Text>
+                <Text style={styles.errorTitle}>Erro na operação</Text>
 
                 <Text style={styles.errorText}>{error}</Text>
               </View>
@@ -524,9 +493,7 @@ export default function SysAdmin() {
                     const r = await api.post<{
                       codigoConvite?: string;
                       codigo_convite?: string;
-                    }>(
-                      `/empresas/${x.id}/regenerar-convite`,
-                    );
+                    }>(`/empresas/${x.id}/regenerar-convite`);
 
                     setError(
                       `Novo convite: ${
@@ -656,10 +623,7 @@ export default function SysAdmin() {
       )}
 
       {modal?.kind === "auditoria" && (
-        <AuditModal
-          item={modal.item}
-          onClose={() => setModal(null)}
-        />
+        <AuditModal item={modal.item} onClose={() => setModal(null)} />
       )}
     </View>
   );
@@ -678,9 +642,7 @@ function Overview({
   auditoria: Auditoria[];
   onTab: (x: Tab) => void;
 }) {
-  const ativos = empresas.filter(
-    (x) => x.ativo !== false,
-  ).length;
+  const ativos = empresas.filter((x) => x.ativo !== false).length;
 
   const users = usuarios.filter((x) => x.ativo).length;
 
@@ -692,21 +654,9 @@ function Overview({
         {[
           ["Empresas", empresas.length, `${ativos} ativas`],
           ["Usuários", usuarios.length, `${users} ativos`],
-          [
-            "Pendentes",
-            pending,
-            "aguardando aprovação",
-          ],
-          [
-            "Perfis",
-            perfis.length,
-            "perfis cadastrados",
-          ],
-          [
-            "Auditoria",
-            auditoria.length,
-            "registros disponíveis",
-          ],
+          ["Pendentes", pending, "aguardando aprovação"],
+          ["Perfis", perfis.length, "perfis cadastrados"],
+          ["Auditoria", auditoria.length, "registros disponíveis"],
         ].map(([a, b, c]) => (
           <View style={styles.metric} key={String(a)}>
             <Text style={styles.metricLabel}>{a}</Text>
@@ -719,42 +669,30 @@ function Overview({
       </View>
 
       <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>
-          Ações rápidas
-        </Text>
+        <Text style={styles.sectionTitle}>Ações rápidas</Text>
 
-        <Text style={styles.sectionHint}>
-          Administração global
-        </Text>
+        <Text style={styles.sectionHint}>Administração global</Text>
       </View>
 
       <View style={styles.panel}>
         <View style={styles.row}>
           <View style={styles.rowMain}>
-            <Text style={styles.rowTitle}>
-              Criar nova empresa
-            </Text>
+            <Text style={styles.rowTitle}>Criar nova empresa</Text>
 
             <Text style={styles.rowSub}>
               Cadastre um novo tenant para utilizar o CMMS.
             </Text>
           </View>
 
-          <Button
-            title="Nova empresa"
-            onPress={() => onTab("empresas")}
-          />
+          <Button title="Nova empresa" onPress={() => onTab("empresas")} />
         </View>
 
         <View style={styles.row}>
           <View style={styles.rowMain}>
-            <Text style={styles.rowTitle}>
-              Aprovar usuários
-            </Text>
+            <Text style={styles.rowTitle}>Aprovar usuários</Text>
 
             <Text style={styles.rowSub}>
-              Veja cadastros que ainda estão aguardando
-              aprovação.
+              Veja cadastros que ainda estão aguardando aprovação.
             </Text>
           </View>
 
@@ -767,9 +705,7 @@ function Overview({
 
         <View style={styles.row}>
           <View style={styles.rowMain}>
-            <Text style={styles.rowTitle}>
-              Gerenciar permissões
-            </Text>
+            <Text style={styles.rowTitle}>Gerenciar permissões</Text>
 
             <Text style={styles.rowSub}>
               Configure os acessos de cada perfil.
@@ -785,13 +721,9 @@ function Overview({
       </View>
 
       <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>
-          Atividade recente
-        </Text>
+        <Text style={styles.sectionTitle}>Atividade recente</Text>
 
-        <Text style={styles.sectionHint}>
-          Últimos 8 eventos
-        </Text>
+        <Text style={styles.sectionHint}>Últimos 8 eventos</Text>
       </View>
 
       <View style={styles.panel}>
@@ -803,14 +735,11 @@ function Overview({
               </Text>
 
               <Text style={styles.auditDetail}>
-                Registro #{a.registroId ?? "—"} · Usuário #
-                {a.usuarioId ?? "—"}
+                Registro #{a.registroId ?? "—"} · Usuário #{a.usuarioId ?? "—"}
               </Text>
             </View>
 
-            <Text style={styles.rowMeta}>
-              {date(a.criadoEm)}
-            </Text>
+            <Text style={styles.rowMeta}>{date(a.criadoEm)}</Text>
           </View>
         ))}
       </View>
@@ -846,19 +775,14 @@ function Empresas({
           placeholderTextColor="#94A3B8"
         />
 
-        <Button
-          title="Nova empresa"
-          onPress={onNew}
-        />
+        <Button title="Nova empresa" onPress={onNew} />
       </View>
 
       <View style={styles.panel}>
         {items.map((e) => (
           <View style={styles.row} key={e.id}>
             <View style={styles.rowMain}>
-              <Text style={styles.rowTitle}>
-                {e.nome}
-              </Text>
+              <Text style={styles.rowTitle}>{e.nome}</Text>
 
               <Text style={styles.rowSub}>
                 {e.cnpj || "CNPJ não informado"} · ID #{e.id}
@@ -870,31 +794,17 @@ function Empresas({
               </Text>
             </View>
 
-            <Badge
-              tone={e.ativo === false ? "red" : "green"}
-            >
+            <Badge tone={e.ativo === false ? "red" : "green"}>
               {e.ativo === false ? "Inativa" : "Ativa"}
             </Badge>
 
             <View style={styles.actions}>
-              <Button
-                title="Editar"
-                secondary
-                onPress={() => onEdit(e)}
-              />
+              <Button title="Editar" secondary onPress={() => onEdit(e)} />
+
+              <Button title="Convite" secondary onPress={() => onInvite(e)} />
 
               <Button
-                title="Convite"
-                secondary
-                onPress={() => onInvite(e)}
-              />
-
-              <Button
-                title={
-                  e.ativo === false
-                    ? "Ativar"
-                    : "Desativar"
-                }
+                title={e.ativo === false ? "Ativar" : "Desativar"}
                 danger={e.ativo !== false}
                 secondary={e.ativo === false}
                 onPress={() => onToggle(e)}
@@ -905,9 +815,7 @@ function Empresas({
 
         {!items.length && (
           <View style={styles.empty}>
-            <Text style={styles.emptyText}>
-              Nenhuma empresa encontrada.
-            </Text>
+            <Text style={styles.emptyText}>Nenhuma empresa encontrada.</Text>
           </View>
         )}
       </View>
@@ -946,40 +854,24 @@ function Usuarios({
         />
 
         <Pressable
-          style={[
-            styles.filter,
-            filter === "todos" && styles.filterActive,
-          ]}
+          style={[styles.filter, filter === "todos" && styles.filterActive]}
           onPress={() => setFilter("todos")}
         >
-          <Text style={styles.filterText}>
-            Todos
-          </Text>
+          <Text style={styles.filterText}>Todos</Text>
         </Pressable>
 
         <Pressable
-          style={[
-            styles.filter,
-            filter === "ativos" && styles.filterActive,
-          ]}
+          style={[styles.filter, filter === "ativos" && styles.filterActive]}
           onPress={() => setFilter("ativos")}
         >
-          <Text style={styles.filterText}>
-            Ativos
-          </Text>
+          <Text style={styles.filterText}>Ativos</Text>
         </Pressable>
 
         <Pressable
-          style={[
-            styles.filter,
-            filter === "pendentes" &&
-              styles.filterActive,
-          ]}
+          style={[styles.filter, filter === "pendentes" && styles.filterActive]}
           onPress={() => setFilter("pendentes")}
         >
-          <Text style={styles.filterText}>
-            Pendentes
-          </Text>
+          <Text style={styles.filterText}>Pendentes</Text>
         </Pressable>
       </View>
 
@@ -987,18 +879,15 @@ function Usuarios({
         {items.map((u) => (
           <View style={styles.row} key={u.id}>
             <View style={styles.rowMain}>
-              <Text style={styles.rowTitle}>
-                {u.username}
-              </Text>
+              <Text style={styles.rowTitle}>{u.username}</Text>
 
               <Text style={styles.rowSub}>
                 {u.email} · {u.empresa?.nome}
               </Text>
 
               <Text style={styles.rowMeta}>
-                {label(u.perfil)} ·{" "}
-                {u.cargo || "Cargo não informado"} · Cadastro{" "}
-                {date(u.criadoEm)}
+                {label(u.perfil)} · {u.cargo || "Cargo não informado"} ·
+                Cadastro {date(u.criadoEm)}
               </Text>
             </View>
 
@@ -1008,26 +897,17 @@ function Usuarios({
 
             <View style={styles.actions}>
               {!u.ativo && (
-                <Button
-                  title="Aprovar"
-                  onPress={() => onApprove(u)}
-                />
+                <Button title="Aprovar" onPress={() => onApprove(u)} />
               )}
 
-              <Button
-                title="Editar"
-                secondary
-                onPress={() => onEdit(u)}
-              />
+              <Button title="Editar" secondary onPress={() => onEdit(u)} />
             </View>
           </View>
         ))}
 
         {!items.length && (
           <View style={styles.empty}>
-            <Text style={styles.emptyText}>
-              Nenhum usuário encontrado.
-            </Text>
+            <Text style={styles.emptyText}>Nenhum usuário encontrado.</Text>
           </View>
         )}
       </View>
@@ -1050,29 +930,21 @@ function Perfis({
     <>
       <View style={styles.toolbar}>
         <View style={styles.rowMain}>
-          <Text style={styles.rowTitle}>
-            Perfis do sistema
-          </Text>
+          <Text style={styles.rowTitle}>Perfis do sistema</Text>
 
           <Text style={styles.rowSub}>
-            Atribua somente as permissões necessárias a cada
-            função.
+            Atribua somente as permissões necessárias a cada função.
           </Text>
         </View>
 
-        <Button
-          title="Novo perfil"
-          onPress={onNew}
-        />
+        <Button title="Novo perfil" onPress={onNew} />
       </View>
 
       <View style={styles.panel}>
         {items.map((p) => (
           <View style={styles.row} key={p.id}>
             <View style={styles.rowMain}>
-              <Text style={styles.rowTitle}>
-                {label(p.nome)}
-              </Text>
+              <Text style={styles.rowTitle}>{label(p.nome)}</Text>
 
               <Text style={styles.rowSub}>
                 {p.descricao || "Sem descrição"}
@@ -1084,25 +956,16 @@ function Perfis({
             </View>
 
             <View style={styles.actions}>
-              <Button
-                title="Permissões"
-                onPress={() => onPermissions(p)}
-              />
+              <Button title="Permissões" onPress={() => onPermissions(p)} />
 
-              <Button
-                title="Editar"
-                secondary
-                onPress={() => onEdit(p)}
-              />
+              <Button title="Editar" secondary onPress={() => onEdit(p)} />
             </View>
           </View>
         ))}
 
         {!items.length && (
           <View style={styles.empty}>
-            <Text style={styles.emptyText}>
-              Nenhum perfil encontrado.
-            </Text>
+            <Text style={styles.emptyText}>Nenhum perfil encontrado.</Text>
           </View>
         )}
       </View>
@@ -1124,9 +987,7 @@ function AuditoriaView({
   const normalizedSearch = search.trim().toLowerCase();
 
   const filtered = items.filter((a) =>
-    `${a.acao} ${a.tabela} ${
-      a.registroId ?? ""
-    } ${a.usuarioId ?? ""}`
+    `${a.acao} ${a.tabela} ${a.registroId ?? ""} ${a.usuarioId ?? ""}`
       .toLowerCase()
       .includes(normalizedSearch),
   );
@@ -1156,22 +1017,17 @@ function AuditoriaView({
               </Text>
 
               <Text style={styles.auditDetail}>
-                Registro #{a.registroId ?? "—"} · Usuário #
-                {a.usuarioId ?? "—"}
+                Registro #{a.registroId ?? "—"} · Usuário #{a.usuarioId ?? "—"}
               </Text>
             </View>
 
-            <Text style={styles.rowMeta}>
-              {date(a.criadoEm)}
-            </Text>
+            <Text style={styles.rowMeta}>{date(a.criadoEm)}</Text>
           </Pressable>
         ))}
 
         {!filtered.length && (
           <View style={styles.empty}>
-            <Text style={styles.emptyText}>
-              Nenhum evento encontrado.
-            </Text>
+            <Text style={styles.emptyText}>Nenhum evento encontrado.</Text>
           </View>
         )}
       </View>
@@ -1190,11 +1046,8 @@ function EmpresaModal({
 }) {
   const [nome, setNome] = useState(item?.nome ?? "");
   const [cnpj, setCnpj] = useState(item?.cnpj ?? "");
-  const [codigoConvite, setCodigoConvite] =
-    useState(item?.codigoConvite ?? "");
-  const [ativo, setAtivo] = useState(
-    item?.ativo !== false,
-  );
+  const [codigoConvite, setCodigoConvite] = useState(item?.codigoConvite ?? "");
+  const [ativo, setAtivo] = useState(item?.ativo !== false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
@@ -1206,29 +1059,20 @@ function EmpresaModal({
 
     try {
       if (!nome.trim()) {
-        throw new Error(
-          "Informe o nome da empresa.",
-        );
+        throw new Error("Informe o nome da empresa.");
       }
 
       const body = {
         nome: nome.trim(),
         cnpj: cnpj.trim() || null,
-        codigoConvite:
-          codigoConvite.trim() || null,
+        codigoConvite: codigoConvite.trim() || null,
         ativo,
       };
 
       if (item) {
-        await api.patch(
-          `/empresas/${item.id}`,
-          body,
-        );
+        await api.patch(`/empresas/${item.id}`, body);
       } else {
-        await api.post(
-          "/empresas",
-          body,
-        );
+        await api.post("/empresas", body);
       }
 
       onSaved();
@@ -1240,18 +1084,12 @@ function EmpresaModal({
   };
 
   return (
-    <Modal
-      transparent
-      animationType="fade"
-      onRequestClose={onClose}
-    >
+    <Modal transparent animationType="fade" onRequestClose={onClose}>
       <View style={styles.modalBackdrop}>
         <View style={styles.modal}>
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>
-              {item
-                ? "Editar empresa"
-                : "Nova empresa"}
+              {item ? "Editar empresa" : "Nova empresa"}
             </Text>
 
             <Pressable onPress={onClose}>
@@ -1281,24 +1119,15 @@ function EmpresaModal({
               placeholder="123456"
             />
 
-            <Text style={styles.label}>
-              Status
-            </Text>
+            <Text style={styles.label}>Status</Text>
 
             <View style={styles.selectRow}>
               <Pressable
                 onPress={() => setAtivo(true)}
-                style={[
-                  styles.select,
-                  ativo && styles.selectActive,
-                ]}
+                style={[styles.select, ativo && styles.selectActive]}
               >
                 <Text
-                  style={[
-                    styles.selectText,
-                    ativo &&
-                      styles.selectTextActive,
-                  ]}
+                  style={[styles.selectText, ativo && styles.selectTextActive]}
                 >
                   Ativa
                 </Text>
@@ -1306,29 +1135,17 @@ function EmpresaModal({
 
               <Pressable
                 onPress={() => setAtivo(false)}
-                style={[
-                  styles.select,
-                  !ativo &&
-                    styles.selectActive,
-                ]}
+                style={[styles.select, !ativo && styles.selectActive]}
               >
                 <Text
-                  style={[
-                    styles.selectText,
-                    !ativo &&
-                      styles.selectTextActive,
-                  ]}
+                  style={[styles.selectText, !ativo && styles.selectTextActive]}
                 >
                   Inativa
                 </Text>
               </Pressable>
             </View>
 
-            {error && (
-              <Text style={styles.errorText}>
-                {error}
-              </Text>
-            )}
+            {error && <Text style={styles.errorText}>{error}</Text>}
           </ScrollView>
 
           <View style={styles.modalFooter}>
@@ -1340,11 +1157,7 @@ function EmpresaModal({
             />
 
             <Button
-              title={
-                saving
-                  ? "Salvando..."
-                  : "Salvar"
-              }
+              title={saving ? "Salvando..." : "Salvar"}
               disabled={saving}
               onPress={() => void save()}
             />
@@ -1366,31 +1179,16 @@ function UsuarioModal({
   onClose: () => void;
   onSaved: () => void;
 }) {
-  const [username, setUsername] = useState(
-    item.username ?? "",
-  );
-  const [email, setEmail] = useState(
-    item.email ?? "",
-  );
-  const [cargo, setCargo] = useState(
-    item.cargo ?? "",
-  );
-  const [funcao, setFuncao] = useState(
-    item.funcao ?? "",
+  const [username, setUsername] = useState(item.username ?? "");
+  const [email, setEmail] = useState(item.email ?? "");
+  const [cargo, setCargo] = useState(item.cargo ?? "");
+  const [funcao, setFuncao] = useState(item.funcao ?? "");
+
+  const [perfilId, setPerfilId] = useState<number | undefined>(
+    item.perfilId ?? perfis.find((p) => p.nome === item.perfil)?.id,
   );
 
-  const [perfilId, setPerfilId] = useState<
-    number | undefined
-  >(
-    item.perfilId ??
-      perfis.find(
-        (p) => p.nome === item.perfil,
-      )?.id,
-  );
-
-  const [ativo, setAtivo] = useState(
-    item.ativo,
-  );
+  const [ativo, setAtivo] = useState(item.ativo);
 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -1398,58 +1196,94 @@ function UsuarioModal({
   const approve = item.approve === true;
 
   const save = async () => {
-    if (saving) return;
+    if (saving) {
+      console.log("[UsuarioModal] Salvamento já em andamento.");
+      return;
+    }
+
+    console.log("[UsuarioModal] Iniciando salvamento...");
+    console.log("[UsuarioModal] Usuário:", item.id);
+    console.log("[UsuarioModal] Aprovação:", approve);
+    console.log("[UsuarioModal] Perfil:", perfilId);
+    console.log("[UsuarioModal] Username:", username);
+    console.log("[UsuarioModal] Email:", email);
+    console.log("[UsuarioModal] Cargo:", cargo);
+    console.log("[UsuarioModal] Função:", funcao);
+    console.log("[UsuarioModal] Ativo:", ativo);
 
     setSaving(true);
     setError("");
 
     try {
       if (!perfilId) {
-        throw new Error(
-          "Selecione um perfil.",
-        );
+        console.log("[UsuarioModal] Erro: nenhum perfil selecionado.");
+        throw new Error("Selecione um perfil.");
       }
 
       if (approve) {
-        await api.patch(
+        const payload = {
+          perfilId,
+        };
+
+        console.log(
+          "[UsuarioModal] Enviando aprovação:",
           `/usuarios/${item.id}/aprovar`,
-          { perfilId },
+          payload,
         );
+
+        const resposta = await api.patch(
+          `/usuarios/${item.id}/aprovar`,
+          payload,
+        );
+
+        console.log("[UsuarioModal] Resposta da aprovação:", resposta);
       } else {
-        await api.patch(
+        const payload = {
+          username: username.trim(),
+          email: email.trim(),
+          cargo: cargo.trim() || null,
+          funcao: funcao.trim() || null,
+          perfilId,
+          ativo,
+        };
+
+        console.log(
+          "[UsuarioModal] Enviando atualização:",
           `/usuarios/${item.id}`,
-          {
-            username: username.trim(),
-            email: email.trim(),
-            cargo: cargo.trim() || null,
-            funcao: funcao.trim() || null,
-            perfilId,
-            ativo,
-          },
         );
+
+        console.log("[UsuarioModal] Payload:", payload);
+
+        const resposta = await api.patch(`/usuarios/${item.id}`, payload);
+
+        console.log("[UsuarioModal] Resposta da API:", resposta);
       }
+
+      console.log("[UsuarioModal] Salvamento concluído.");
 
       onSaved();
     } catch (e) {
-      setError(msg(e));
+      console.error("[UsuarioModal] Erro ao salvar usuário:", e);
+
+      const mensagem = msg(e);
+
+      console.error("[UsuarioModal] Mensagem exibida:", mensagem);
+
+      setError(mensagem);
     } finally {
+      console.log("[UsuarioModal] Finalizando salvamento.");
+
       setSaving(false);
     }
   };
 
   return (
-    <Modal
-      transparent
-      animationType="fade"
-      onRequestClose={onClose}
-    >
+    <Modal transparent animationType="fade" onRequestClose={onClose}>
       <View style={styles.modalBackdrop}>
         <View style={styles.modal}>
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>
-              {approve
-                ? "Aprovar usuário"
-                : "Editar usuário"}
+              {approve ? "Aprovar usuário" : "Editar usuário"}
             </Text>
 
             <Pressable onPress={onClose}>
@@ -1466,48 +1300,30 @@ function UsuarioModal({
                   onChangeText={setUsername}
                 />
 
-                <Field
-                  label="E-mail"
-                  value={email}
-                  onChangeText={setEmail}
-                />
+                <Field label="E-mail" value={email} onChangeText={setEmail} />
 
-                <Field
-                  label="Cargo"
-                  value={cargo}
-                  onChangeText={setCargo}
-                />
+                <Field label="Cargo" value={cargo} onChangeText={setCargo} />
 
-                <Field
-                  label="Função"
-                  value={funcao}
-                  onChangeText={setFuncao}
-                />
+                <Field label="Função" value={funcao} onChangeText={setFuncao} />
               </>
             )}
 
-            <Text style={styles.label}>
-              Perfil
-            </Text>
+            <Text style={styles.label}>Perfil</Text>
 
             <View style={styles.selectRow}>
               {perfis.map((p) => (
                 <Pressable
                   key={p.id}
-                  onPress={() =>
-                    setPerfilId(p.id)
-                  }
+                  onPress={() => setPerfilId(p.id)}
                   style={[
                     styles.select,
-                    perfilId === p.id &&
-                      styles.selectActive,
+                    perfilId === p.id && styles.selectActive,
                   ]}
                 >
                   <Text
                     style={[
                       styles.selectText,
-                      perfilId === p.id &&
-                        styles.selectTextActive,
+                      perfilId === p.id && styles.selectTextActive,
                     ]}
                   >
                     {label(p.nome)}
@@ -1518,31 +1334,17 @@ function UsuarioModal({
 
             {!approve && (
               <>
-                <Text
-                  style={[
-                    styles.label,
-                    { marginTop: 14 },
-                  ]}
-                >
-                  Status
-                </Text>
+                <Text style={[styles.label, { marginTop: 14 }]}>Status</Text>
 
                 <View style={styles.selectRow}>
                   <Pressable
-                    onPress={() =>
-                      setAtivo(true)
-                    }
-                    style={[
-                      styles.select,
-                      ativo &&
-                        styles.selectActive,
-                    ]}
+                    onPress={() => setAtivo(true)}
+                    style={[styles.select, ativo && styles.selectActive]}
                   >
                     <Text
                       style={[
                         styles.selectText,
-                        ativo &&
-                          styles.selectTextActive,
+                        ativo && styles.selectTextActive,
                       ]}
                     >
                       Ativo
@@ -1550,20 +1352,13 @@ function UsuarioModal({
                   </Pressable>
 
                   <Pressable
-                    onPress={() =>
-                      setAtivo(false)
-                    }
-                    style={[
-                      styles.select,
-                      !ativo &&
-                        styles.selectActive,
-                    ]}
+                    onPress={() => setAtivo(false)}
+                    style={[styles.select, !ativo && styles.selectActive]}
                   >
                     <Text
                       style={[
                         styles.selectText,
-                        !ativo &&
-                          styles.selectTextActive,
+                        !ativo && styles.selectTextActive,
                       ]}
                     >
                       Inativo
@@ -1573,11 +1368,7 @@ function UsuarioModal({
               </>
             )}
 
-            {error && (
-              <Text style={styles.errorText}>
-                {error}
-              </Text>
-            )}
+            {error && <Text style={styles.errorText}>{error}</Text>}
           </ScrollView>
 
           <View style={styles.modalFooter}>
@@ -1589,15 +1380,12 @@ function UsuarioModal({
             />
 
             <Button
-              title={
-                saving
-                  ? "Salvando..."
-                  : approve
-                    ? "Aprovar"
-                    : "Salvar"
-              }
+              title={saving ? "Salvando..." : approve ? "Aprovar" : "Salvar"}
               disabled={saving}
-              onPress={() => void save()}
+              onPress={() => {
+                console.log("[UsuarioModal] Botão Salvar pressionado.");
+                void save();
+              }}
             />
           </View>
         </View>
@@ -1615,12 +1403,8 @@ function PerfilModal({
   onClose: () => void;
   onSaved: () => void;
 }) {
-  const [nome, setNome] = useState(
-    item?.nome ?? "",
-  );
-  const [descricao, setDescricao] = useState(
-    item?.descricao ?? "",
-  );
+  const [nome, setNome] = useState(item?.nome ?? "");
+  const [descricao, setDescricao] = useState(item?.descricao ?? "");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
@@ -1632,29 +1416,19 @@ function PerfilModal({
 
     try {
       if (!nome.trim()) {
-        throw new Error(
-          "Informe o nome do perfil.",
-        );
+        throw new Error("Informe o nome do perfil.");
       }
 
       if (item) {
-        await api.patch(
-          `/perfis/${item.id}`,
-          {
-            nome: nome.trim(),
-            descricao:
-              descricao.trim() || null,
-          },
-        );
+        await api.patch(`/perfis/${item.id}`, {
+          nome: nome.trim(),
+          descricao: descricao.trim() || null,
+        });
       } else {
-        await api.post(
-          "/perfis",
-          {
-            nome: nome.trim(),
-            descricao:
-              descricao.trim() || null,
-          },
-        );
+        await api.post("/perfis", {
+          nome: nome.trim(),
+          descricao: descricao.trim() || null,
+        });
       }
 
       onSaved();
@@ -1666,18 +1440,12 @@ function PerfilModal({
   };
 
   return (
-    <Modal
-      transparent
-      animationType="fade"
-      onRequestClose={onClose}
-    >
+    <Modal transparent animationType="fade" onRequestClose={onClose}>
       <View style={styles.modalBackdrop}>
         <View style={styles.modal}>
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>
-              {item
-                ? "Editar perfil"
-                : "Novo perfil"}
+              {item ? "Editar perfil" : "Novo perfil"}
             </Text>
 
             <Pressable onPress={onClose}>
@@ -1686,11 +1454,7 @@ function PerfilModal({
           </View>
 
           <View style={styles.modalBody}>
-            <Field
-              label="Nome"
-              value={nome}
-              onChangeText={setNome}
-            />
+            <Field label="Nome" value={nome} onChangeText={setNome} />
 
             <Field
               label="Descrição"
@@ -1699,11 +1463,7 @@ function PerfilModal({
               multiline
             />
 
-            {error && (
-              <Text style={styles.errorText}>
-                {error}
-              </Text>
-            )}
+            {error && <Text style={styles.errorText}>{error}</Text>}
           </View>
 
           <View style={styles.modalFooter}>
@@ -1715,11 +1475,7 @@ function PerfilModal({
             />
 
             <Button
-              title={
-                saving
-                  ? "Salvando..."
-                  : "Salvar"
-              }
+              title={saving ? "Salvando..." : "Salvar"}
               disabled={saving}
               onPress={() => void save()}
             />
@@ -1739,19 +1495,13 @@ function PermissoesModal({
   onClose: () => void;
   onSaved: () => void;
 }) {
-  const [selected, setSelected] = useState<
-    string[]
-  >(item.permissoes ?? []);
+  const [selected, setSelected] = useState<string[]>(item.permissoes ?? []);
 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
   const toggle = (p: string) =>
-    setSelected((s) =>
-      s.includes(p)
-        ? s.filter((x) => x !== p)
-        : [...s, p],
-    );
+    setSelected((s) => (s.includes(p) ? s.filter((x) => x !== p) : [...s, p]));
 
   const save = async () => {
     if (saving) return;
@@ -1760,12 +1510,9 @@ function PermissoesModal({
     setError("");
 
     try {
-      await api.patch(
-        `/perfis/${item.id}/permissoes`,
-        {
-          permissoes: selected,
-        },
-      );
+      await api.patch(`/perfis/${item.id}/permissoes`, {
+        permissoes: selected,
+      });
 
       onSaved();
     } catch (e) {
@@ -1776,11 +1523,7 @@ function PermissoesModal({
   };
 
   return (
-    <Modal
-      transparent
-      animationType="fade"
-      onRequestClose={onClose}
-    >
+    <Modal transparent animationType="fade" onRequestClose={onClose}>
       <View style={styles.modalBackdrop}>
         <View style={styles.modal}>
           <View style={styles.modalHeader}>
@@ -1789,9 +1532,7 @@ function PermissoesModal({
                 Permissões · {label(item.nome)}
               </Text>
 
-              <Text style={styles.rowMeta}>
-                {selected.length} selecionadas
-              </Text>
+              <Text style={styles.rowMeta}>{selected.length} selecionadas</Text>
             </View>
 
             <Pressable onPress={onClose}>
@@ -1807,31 +1548,23 @@ function PermissoesModal({
                   onPress={() => toggle(p)}
                   style={[
                     styles.permission,
-                    selected.includes(p) &&
-                      styles.permissionActive,
+                    selected.includes(p) && styles.permissionActive,
                   ]}
                 >
                   <Text
                     style={[
                       styles.permissionText,
-                      selected.includes(p) &&
-                        styles.permissionTextActive,
+                      selected.includes(p) && styles.permissionTextActive,
                     ]}
                   >
-                    {selected.includes(p)
-                      ? "✓ "
-                      : ""}
+                    {selected.includes(p) ? "✓ " : ""}
                     {p}
                   </Text>
                 </Pressable>
               ))}
             </View>
 
-            {error && (
-              <Text style={styles.errorText}>
-                {error}
-              </Text>
-            )}
+            {error && <Text style={styles.errorText}>{error}</Text>}
           </ScrollView>
 
           <View style={styles.modalFooter}>
@@ -1843,11 +1576,7 @@ function PermissoesModal({
             />
 
             <Button
-              title={
-                saving
-                  ? "Salvando..."
-                  : "Salvar permissões"
-              }
+              title={saving ? "Salvando..." : "Salvar permissões"}
               disabled={saving}
               onPress={() => void save()}
             />
@@ -1866,17 +1595,11 @@ function AuditModal({
   onClose: () => void;
 }) {
   return (
-    <Modal
-      transparent
-      animationType="fade"
-      onRequestClose={onClose}
-    >
+    <Modal transparent animationType="fade" onRequestClose={onClose}>
       <View style={styles.modalBackdrop}>
         <View style={styles.modal}>
           <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>
-              Detalhes da auditoria
-            </Text>
+            <Text style={styles.modalTitle}>Detalhes da auditoria</Text>
 
             <Pressable onPress={onClose}>
               <Text style={styles.close}>×</Text>
@@ -1884,70 +1607,37 @@ function AuditModal({
           </View>
 
           <View style={styles.modalBody}>
-            <Text style={styles.label}>
-              Ação
-            </Text>
+            <Text style={styles.label}>Ação</Text>
 
-            <Text style={styles.rowTitle}>
-              {item.acao}
-            </Text>
+            <Text style={styles.rowTitle}>{item.acao}</Text>
 
-            <Text style={styles.label}>
-              Tabela
-            </Text>
+            <Text style={styles.label}>Tabela</Text>
 
-            <Text style={styles.rowSub}>
-              {item.tabela}
-            </Text>
+            <Text style={styles.rowSub}>{item.tabela}</Text>
 
-            <Text style={styles.label}>
-              Registro
-            </Text>
+            <Text style={styles.label}>Registro</Text>
 
-            <Text style={styles.rowSub}>
-              #{item.registroId ?? "—"}
-            </Text>
+            <Text style={styles.rowSub}>#{item.registroId ?? "—"}</Text>
 
-            <Text style={styles.label}>
-              Usuário
-            </Text>
+            <Text style={styles.label}>Usuário</Text>
 
-            <Text style={styles.rowSub}>
-              #{item.usuarioId ?? "—"}
-            </Text>
+            <Text style={styles.rowSub}>#{item.usuarioId ?? "—"}</Text>
 
-            <Text style={styles.label}>
-              Data
-            </Text>
+            <Text style={styles.label}>Data</Text>
 
-            <Text style={styles.rowSub}>
-              {date(item.criadoEm)}
-            </Text>
+            <Text style={styles.rowSub}>{date(item.criadoEm)}</Text>
 
-            <Text style={styles.label}>
-              Detalhes
-            </Text>
+            <Text style={styles.label}>Detalhes</Text>
 
-            <Text
-              selectable
-              style={styles.rowSub}
-            >
+            <Text selectable style={styles.rowSub}>
               {item.detalhes
-                ? JSON.stringify(
-                    item.detalhes,
-                    null,
-                    2,
-                  )
+                ? JSON.stringify(item.detalhes, null, 2)
                 : "Nenhum detalhe adicional."}
             </Text>
           </View>
 
           <View style={styles.modalFooter}>
-            <Button
-              title="Fechar"
-              secondary
-              onPress={onClose}
-            />
+            <Button title="Fechar" secondary onPress={onClose} />
           </View>
         </View>
       </View>

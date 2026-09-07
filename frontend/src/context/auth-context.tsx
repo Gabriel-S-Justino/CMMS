@@ -28,21 +28,22 @@ import {
   useMemo,
   useState,
   type ReactNode,
-} from 'react';
-import { Platform } from 'react-native';
-import * as SecureStore from 'expo-secure-store';
+} from "react";
+import { Platform } from "react-native";
+import * as SecureStore from "expo-secure-store";
 
 import {
   ApiError,
   api,
   getSessionTokens,
   isApiConfigured,
+  renovarSessao,
   registerSessionHandlers,
   setSessionTokens,
   type SessionTokens,
-} from '@/services/api';
+} from "@/services/api";
 
-const REFRESH_TOKEN_KEY = 'cmms.refreshToken';
+const REFRESH_TOKEN_KEY = "cmms.refreshToken";
 
 export type Empresa = {
   id: number | string;
@@ -78,11 +79,11 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 // --- Secure store ----------------------------------------------------------
 
 /** Web persiste o refresh token para manter a sessão após reload. */
-const persisteNaWeb = Platform.OS === 'web';
+const persisteNaWeb = Platform.OS === "web";
 
 const secureStorage = {
   async get(key: string): Promise<string | null> {
-    if (Platform.OS === 'web') {
+    if (Platform.OS === "web") {
       if (!persisteNaWeb) return null;
       try {
         return globalThis.localStorage?.getItem(key) ?? null;
@@ -94,7 +95,7 @@ const secureStorage = {
   },
 
   async set(key: string, value: string): Promise<void> {
-    if (Platform.OS === 'web') {
+    if (Platform.OS === "web") {
       if (!persisteNaWeb) return;
       try {
         globalThis.localStorage?.setItem(key, value);
@@ -109,7 +110,7 @@ const secureStorage = {
   },
 
   async remove(key: string): Promise<void> {
-    if (Platform.OS === 'web') {
+    if (Platform.OS === "web") {
       // Limpa mesmo com a persistência desligada: pode haver sobra de um build
       // anterior de dev na mesma origem.
       try {
@@ -155,17 +156,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (!isApiConfigured()) return;
 
         const refreshToken = await secureStorage.get(REFRESH_TOKEN_KEY);
+
         if (!refreshToken) return;
 
-        // accessToken vazio: o primeiro 401 dispara o refresh automático do api.ts.
-        setSessionTokens({ accessToken: '', refreshToken });
+        setSessionTokens({
+          accessToken: "",
+          refreshToken,
+        });
 
-        const me = await api.get<Usuario>('/auth/me');
-        if (ativo) setUsuario(me);
+        const tokensRenovados = await renovarSessao();
+
+        if (!tokensRenovados) {
+          await limparSessao();
+          return;
+        }
+
+        const me = await api.get<Usuario>("/auth/me");
+
+        if (ativo) {
+          setUsuario(me);
+        }
       } catch {
         await limparSessao();
       } finally {
-        if (ativo) setIsCarregando(false);
+        if (ativo) {
+          setIsCarregando(false);
+        }
       }
     }
 
@@ -177,11 +193,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = useCallback(async (username: string, senha: string) => {
     if (!isApiConfigured()) {
-      throw new ApiError(0, 'API não configurada. Defina EXPO_PUBLIC_API_URL.', null);
+      throw new ApiError(
+        0,
+        "API não configurada. Defina EXPO_PUBLIC_API_URL.",
+        null,
+      );
     }
 
     const resposta = await api.post<LoginResponse>(
-      '/auth/login',
+      "/auth/login",
       { username, senha },
       { auth: false },
     );
@@ -198,11 +218,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Memória primeiro: em produção web o storage não guarda nada, mas o token
     // vivo está no api.ts e o servidor ainda precisa revogá-lo.
     const refreshToken =
-      getSessionTokens()?.refreshToken ?? (await secureStorage.get(REFRESH_TOKEN_KEY));
+      getSessionTokens()?.refreshToken ??
+      (await secureStorage.get(REFRESH_TOKEN_KEY));
 
     try {
       if (isApiConfigured() && refreshToken) {
-        await api.post('/auth/logout', { refreshToken });
+        await api.post("/auth/logout", { refreshToken });
       }
     } catch {
       // Servidor fora do ar não pode impedir o usuário de sair: limpamos local mesmo assim.
@@ -238,7 +259,7 @@ export function useAuth(): AuthContextValue {
   const context = useContext(AuthContext);
 
   if (!context) {
-    throw new Error('useAuth precisa estar dentro de <AuthProvider>.');
+    throw new Error("useAuth precisa estar dentro de <AuthProvider>.");
   }
 
   return context;

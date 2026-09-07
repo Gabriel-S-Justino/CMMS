@@ -84,7 +84,37 @@ def atualizar_usuario(
     alvo = _obter_usuario(db, usuario_id, usuario)
     antes = auditoria.snapshot(alvo)
 
-    for campo, valor in corpo.model_dump(exclude_unset=True).items():
+    dados = corpo.model_dump(exclude_unset=True)
+
+    if "username" in dados:
+        username_existente = db.scalar(
+            select(Usuario).where(
+                Usuario.username == dados["username"],
+                Usuario.id != usuario_id,
+            )
+        )
+
+        if username_existente:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Username já está em uso.",
+            )
+
+    if "email" in dados:
+        email_existente = db.scalar(
+            select(Usuario).where(
+                Usuario.email == dados["email"],
+                Usuario.id != usuario_id,
+            )
+        )
+
+        if email_existente:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="E-mail já está em uso.",
+            )
+
+    for campo, valor in dados.items():
         setattr(alvo, campo, valor)
 
     try:
@@ -92,7 +122,8 @@ def atualizar_usuario(
     except IntegrityError:
         db.rollback()
         raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT, detail="E-mail já está em uso."
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Não foi possível atualizar o usuário devido a um conflito de dados.",
         ) from None
 
     auditoria.registrar(

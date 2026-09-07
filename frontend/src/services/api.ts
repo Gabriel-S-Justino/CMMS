@@ -107,6 +107,9 @@ function ensureRefresh(): Promise<SessionTokens | null> {
 
   return refreshInFlight;
 }
+export async function renovarSessao(): Promise<SessionTokens | null> {
+  return ensureRefresh();
+}
 
 /** Sessão perdida: zera tudo e volta pro login. */
 async function expireSession() {

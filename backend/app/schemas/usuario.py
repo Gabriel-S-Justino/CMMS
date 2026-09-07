@@ -31,6 +31,7 @@ class UsuarioUpdate(CamelModel):
     """`empresa_id` não está aqui de propósito: mover usuário de tenant não é
     uma edição de perfil, e permitir isso abriria caminho para escalar acesso."""
 
+    username: str | None = Field(default=None, min_length=1, max_length=100)
     email: EmailStr | None = None
     cargo: str | None = Field(default=None, max_length=100)
     funcao: str | None = Field(default=None, max_length=100)
