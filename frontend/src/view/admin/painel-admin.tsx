@@ -20,7 +20,6 @@ const PERMISSOES = [
   'pecas.ver','pecas.criar','pecas.editar','pecas.deletar','anexos.enviar','anexos.deletar','custos.ver','relatorios.exportar','dashboard.ver',
   'usuarios.ver','usuarios.aprovar','usuarios.gerenciar','perfis.gerenciar','auditoria.ver',
 ];
-const PERFIS_BASE = ['admin','gerente','funcionario','leitura'];
 
 function msg(e: unknown) { return e instanceof ApiError || e instanceof Error ? e.message : 'Não foi possível concluir a operação.'; }
 function date(v?: string | null) { if (!v) return '—'; const d = new Date(v); return Number.isNaN(d.getTime()) ? '—' : d.toLocaleString('pt-BR'); }

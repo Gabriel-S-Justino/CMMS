@@ -2,15 +2,23 @@
 //
 // Estado de autenticação do app (docs/cmms-backend-spec.md §4 e §5).
 //
-// Regra de armazenamento:
-//  - accessToken: SÓ em memória (some ao fechar o app; é curto, 15 min)
-//  - refreshToken: expo-secure-store (Keychain/Keystore). Nunca AsyncStorage.
+// --- Secure store ----------------------------------------------------------
 //
-// Em web o expo-secure-store não tem implementação nativa. Lá caímos em
-// localStorage APENAS em desenvolvimento (__DEV__), para não ter que refazer
-// login a cada reload do Metro. Em produção web nada é persistido: a sessão
-// vive só em memória e morre ao recarregar a aba — localStorage é legível por
-// qualquer XSS, e um refresh token de 7 dias ali é um alvo grande demais.
+// Regra de armazenamento:
+//  - accessToken: SOMENTE em memória.
+//  - refreshToken:
+//      • Android/iOS: expo-secure-store (Keychain/Keystore)
+//      • Web: localStorage
+//
+// No web, o refresh token precisa ser persistido para permitir:
+//  - F5/reload sem perder a sessão
+//  - acesso direto a rotas protegidas
+//  - recuperação automática do access token.
+//
+// IMPORTANTE:
+// localStorage é acessível por JavaScript e, portanto, não oferece a mesma
+// proteção de um cookie HttpOnly. Para produção pública, o ideal é migrar
+// posteriormente o refresh token para cookie HttpOnly + Secure + SameSite.
 
 import {
   createContext,
@@ -69,8 +77,8 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 
 // --- Secure store ----------------------------------------------------------
 
-/** Web só persiste em dev; em produção a sessão fica exclusivamente em memória. */
-const persisteNaWeb = Platform.OS === 'web' && __DEV__;
+/** Web persiste o refresh token para manter a sessão após reload. */
+const persisteNaWeb = Platform.OS === 'web';
 
 const secureStorage = {
   async get(key: string): Promise<string | null> {
