@@ -13,6 +13,7 @@ export const ROUTES = {
   MAINTENANCE_FORM: '/manutencao',
   MAINTENANCE_DETAIL: '/manutencaoDetalhe',
   PLAN_FORM: '/planoPreventiva',
+  SYS_ADMIN: '/sys-admin',
 } as const;
 
 export type AppRoute = (typeof ROUTES)[keyof typeof ROUTES];

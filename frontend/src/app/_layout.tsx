@@ -16,7 +16,7 @@ import { ROUTES } from '@/constants/routes';
 const ROTAS_PUBLICAS = ['login', 'cadUser', 'recuperarSenha', 'termos', 'privacidade'];
 
 function RotasProtegidas() {
-  const { isAuthenticated, isCarregando } = useAuth();
+  const { usuario, isAuthenticated, isCarregando } = useAuth();
   const segments = useSegments();
 
   useEffect(() => {
@@ -31,10 +31,15 @@ function RotasProtegidas() {
     }
 
     // Já logado não fica preso na tela de login (nem no index, que só redireciona).
+
     if (isAuthenticated && (rotaAtual === undefined || rotaAtual === 'login')) {
-      router.replace(ROUTES.HOME);
+      if (usuario?.perfil === 'superadmin') {
+        router.replace(ROUTES.SYS_ADMIN);
+      } else {
+        router.replace(ROUTES.HOME);
+      }
     }
-  }, [isAuthenticated, isCarregando, segments]);
+  },   [usuario, isAuthenticated, isCarregando, segments]);
 
   if (isCarregando) {
     return (
