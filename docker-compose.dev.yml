@@ -1,0 +1,17 @@
+# ============================================================
+# CMMS — Desenvolvimento
+# ============================================================
+# Frontend roda diretamente pelo Expo no Ubuntu.
+# PostgreSQL e API continuam dentro do Docker.
+# ============================================================
+
+services:
+
+  api:
+    ports:
+      - "${API_PORT:-8080}:8000"
+
+    environment:
+      DEBUG: "true"
+
+      CORS_ORIGINS: ${CORS_ORIGINS_DEV:-http://localhost:8082,http://localhost:8081}
